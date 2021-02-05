@@ -22,6 +22,7 @@
 #include "TLegend.h"
 #include "TCanvas.h"
 #include "TLorentzVector.h"
+#include "TGraphErrors.h"
 #include "TBenchmark.h"
 
 // RooFit
@@ -65,6 +66,12 @@ TBenchmark *fBenchmark      =   new TBenchmark();
 //
 auto        hName           =   "Name";
 auto        hTitle          =   "Title";
+//
+// Title and Name for histograms
+//
+const Bool_t    kFitScarseHisto =   kTRUE;     // Skip the fit of histograms that are below the threshold set below
+const Float_t   kScarseHistoDef =   0.;        // % of entries w.r.t. total bin number
+const Int_t     kScarseHistoMin =   1000.;     // N of entries
 //
 //---------------------------------------//
 //- Physics is by defualt in GeV, we    -//
@@ -117,12 +124,10 @@ void    fPrintLoopTimer         ( TString fTimerName, Int_t iEvent, Int_t nEntri
     if ( iPrintInterval/1e6 < 1e6         && iPrintInterval/1e6 >= 1 )       {
         fSuffix =   "mln";
         fSfxCor =   (int)(iPrintInterval/1e6) + iPrintInterval%(int)1e6;
-        cout << fSfxCor << endl;
     }
     if ( iPrintInterval/1e9 < 1e9         && iPrintInterval/1e9 >= 1 )       {
         fSuffix =   "mld";
         fSfxCor =   (int)(iPrintInterval/1e9) + iPrintInterval%(int)1e9;
-        cout << fSfxCor << endl;
     }
     
     // Stopping timer
@@ -151,14 +156,141 @@ void    fPrintLoopTimer         ( TString fTimerName, Int_t iEvent, Int_t nEntri
 //------------------------------//
 //
 template < class Tclass >
-bool    fIsWorthFitting         ( Tclass * aTarget )    {
-    if ( aTarget->GetEntries() <= 2.*aTarget->GetNbinsX()*aTarget->GetNbinsY()*aTarget->GetNbinsZ() )
-    {
-        cout << "[WARNING] Skipping empty or scarsely populated histogram!" << endl;
+bool    fIsWorthFitting                         ( Tclass * aTarget )    {
+    if ( !aTarget ) {
+        cout << "[ERROR] You are trying to fit a null histogram! Skipping this one..." << endl;
         return false;
+    }
+    if (  aTarget->GetEntries() == 0. ) {
+        cout << "[ERROR] You are trying to fit an empty histogram! Skipping this one..." << endl;
+        return false;
+    }
+    if (  aTarget->GetEntries() <= kScarseHistoDef*aTarget->GetNbinsX()*aTarget->GetNbinsY()*aTarget->GetNbinsZ() + kScarseHistoMin ) {
+        cout << "[WARNING] You are trying to fit a scarsely populated histogram!" << endl;
+        if ( kFitScarseHisto )  {
+            cout << "[INFO] You chose to Fit it anyway, so I'm trying" << endl;
+            return true;
+        }
+        else    {
+            cout << "[INFO] You chose to skip this type of Fit, so I'm skipping" << endl;
+            return false;
+        }
     }
     return true;
 }
+//
+//_____________________________________________________________________________
+//
+TGraphAsymmErrors*  fSumGraphErrors             ( TGraphAsymmErrors* gBasic, TGraphAsymmErrors* gAddition )    {
+    //  Checking the consistency of TGraphs
+    Int_t   fNPoints =   gBasic ->  GetN();
+    if  ( fNPoints  != gAddition ->  GetN() )
+    {
+        cout << "[ERROR] Systematics and Statistics do not have the same number of points! Skipping this one..." << endl;
+        return nullptr;
+    }
+    //
+    TGraphAsymmErrors  *fResult =   new TGraphAsymmErrors(*gBasic);
+    for ( Int_t iFit = 0; iFit < fNPoints; iFit++ ) {
+        auto    fXErrBsicLow    =   ( gBasic ->  GetErrorXlow(iFit) );
+        auto    fXErrBsicHigh   =   ( gBasic ->  GetErrorXhigh(iFit) );
+        auto    fYErrBsicLow    =   ( gBasic ->  GetErrorYlow(iFit) );
+        auto    fYErrBsicHigh   =   ( gBasic ->  GetErrorYhigh(iFit) );
+        auto    fYErrAddtLow    =   ( gAddition ->  GetErrorYlow(iFit) );
+        auto    fYErrAddtHigh   =   ( gAddition ->  GetErrorYhigh(iFit) );
+        fResult ->  SetPointError(iFit,fXErrBsicLow,fXErrBsicHigh,sqrt(fYErrBsicLow*fYErrBsicLow+fYErrAddtLow*fYErrAddtLow),sqrt(fYErrBsicHigh*fYErrBsicHigh+fYErrAddtHigh*fYErrAddtHigh));
+    }
+    //
+    return  fResult;
+}
+//
+//_____________________________________________________________________________
+//
+TGraphAsymmErrors*  fRandomizePoints            ( TGraphAsymmErrors* gStatic, TGraphAsymmErrors* gMoveable )    {
+    //  Checking the consistency of TGraphs
+    Int_t   fNPoints =   gStatic ->  GetN();
+    if  ( fNPoints  != gMoveable ->  GetN() )
+    {
+        cout << "[ERROR] Systematics and Statistics do not have the same number of points! Skipping this one..." << endl;
+        return nullptr;
+    }
+    //
+    TGraphAsymmErrors  *fResult =   new TGraphAsymmErrors(*gStatic);
+    for ( Int_t iFit = 0; iFit < fNPoints; iFit++ ) {
+        auto    fXValue         =   ( gStatic ->  GetPointX(iFit) );
+        auto    fYValue         =   ( gStatic ->  GetPointY(iFit) );
+        auto    fYErrMvblLow    =   ( gMoveable ->  GetErrorYlow(iFit) );
+        auto    fYErrMvblHigh   =   ( gMoveable ->  GetErrorYhigh(iFit) );
+        auto    fIsFluctLow     =   true;
+        auto    fYNewValue      =   fYValue;
+        ( fRandomGen  ->  Uniform (0.,1.) ) > 0.5? fIsFluctLow = true : fIsFluctLow = false;
+        if ( fIsFluctLow )  {
+            fYNewValue  -= fabs(fRandomGen  ->  Gaus(fYValue,fYErrMvblLow) - fYValue);
+        }   else    {
+            fYNewValue  += fabs(fRandomGen  ->  Gaus(fYValue,fYErrMvblHigh) - fYValue);
+        }
+        fResult->SetPoint(iFit,fXValue,fYNewValue);
+    }
+    return  fSumGraphErrors(fResult,gMoveable);
+}
+//
+//_____________________________________________________________________________
+//
+TGraphAsymmErrors*  fEfficiencycorrection       ( TH1   *fToBeCorrected, TH1    *fAccepted,  TH1    *fTotal,    Double_t fScale = 1. )  {
+    //  Checking the consistency of TH1*
+    //
+    //  Copying accordingly the TH1*
+    TGraphAsymmErrors  *fResult =   new TGraphAsymmErrors();
+    //
+    fResult->Divide(fAccepted,fTotal,"cl=0.683 b(1,1) mode");
+    //
+    Int_t   fNPoints =   fResult ->  GetN();
+    for ( Int_t iFit = 0; iFit < fNPoints; iFit++ ) {
+        auto    fYValueResult   =   ( fToBeCorrected ->  GetBinContent(iFit+1) );
+        auto    fYErrorRstUnif  =   ( fToBeCorrected ->  GetBinError(iFit+1) );
+        auto    fYValueEffic    =   ( fResult ->  GetPointY(iFit) );
+        auto    fYErrorEffHigh  =   ( fResult ->  GetErrorYhigh(iFit) );
+        auto    fYErrorEffLow   =   ( fResult ->  GetErrorYlow(iFit) );
+        fResult ->  SetPointY       (iFit,fScale*fYValueResult/fYValueEffic);
+        fResult ->  SetPointEYlow   (iFit,fScale*sqrt(fYErrorEffHigh*fYErrorEffHigh + fYErrorRstUnif*fYErrorRstUnif ));
+        fResult ->  SetPointEYhigh  (iFit,fScale*sqrt(fYErrorEffLow*fYErrorEffLow + fYErrorRstUnif*fYErrorRstUnif ));
+    }
+    //
+    return  fResult;
+}
+//
+//_____________________________________________________________________________
+//
+//TCanvas*            fRatioPlot                  ( TH1   *fToBeCorrected, TH1    *fAccepted,  TH1    *fTotal,    Double_t fScale = 1. )  {
+    return nullptr;
+}
+//
+//------------------------------//
+//    GENERAL FUNCTIONS         //
+//------------------------------//
+//
+Double_t                fLevyFunc1D     ( Double_t * fVar, Double_t * fParams ) {
+    Double_t    fPT     = fVar[0];
+    Double_t    fMass   = fParams[0];
+    Double_t    fEnne   = fParams[1];
+    Double_t    fSlop   = fParams[2];
+    Double_t    fdNdY   = fParams[3];
+    
+    Double_t    fNum1   = (fEnne-1)*(fEnne-2);
+    Double_t    fDen1   = fEnne*fSlop*(fEnne*fSlop+fMass*(fEnne-2));
+    Double_t    fFac1   = fNum1/fDen1;
+    
+    Double_t    fMasT   = sqrt(fMass*fMass+fPT*fPT);
+    Double_t    fNum2   = fMasT - fMass;
+    Double_t    fDen2   = fEnne*fSlop;
+    Double_t    fFac2   = TMath::Power((1 + fNum2/fDen2),(-fEnne));
+    
+    return      fPT*fdNdY*fFac1*fFac2;
+}
+//
+//_____________________________________________________________________________
+//
+TF1 *                   fLevyFit1D      = new TF1 ("fLevyFunc1D",fLevyFunc1D,0.,100.,4);
 //
 //_____________________________________________________________________________
 
