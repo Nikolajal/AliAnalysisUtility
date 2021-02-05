@@ -165,7 +165,7 @@ bool    fIsWorthFitting                         ( Tclass * aTarget )    {
         cout << "[ERROR] You are trying to fit an empty histogram! Skipping this one..." << endl;
         return false;
     }
-    if (  aTarget->GetEntries() <= kScarseHistoDef*aTarget->GetNbinsX()*aTarget->GetNbinsY()*aTarget->GetNbinsZ() + kScarseHistoMin ) {
+    if (  aTarget->GetEntries() <= kScarseHistoMin > 0 ? kScarseHistoMin : kScarseHistoDef*aTarget->GetNbinsX()*aTarget->GetNbinsY()*aTarget->GetNbinsZ() ) {
         cout << "[WARNING] You are trying to fit a scarsely populated histogram!" << endl;
         if ( kFitScarseHisto )  {
             cout << "[INFO] You chose to Fit it anyway, so I'm trying" << endl;
