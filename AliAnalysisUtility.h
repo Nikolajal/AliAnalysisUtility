@@ -69,9 +69,10 @@ auto        hTitle          =   "Title";
 //
 // Title and Name for histograms
 //
-const Bool_t    kFitScarseHisto =   kTRUE;     // Skip the fit of histograms that are below the threshold set below
-const Float_t   kScarseHistoDef =   0.;        // % of entries w.r.t. total bin number
-const Int_t     kScarseHistoMin =   1000.;     // N of entries
+const Bool_t    kFitScarseHisto =   kTRUE;      //  Skip the fit of histograms that are below the threshold set below
+const Float_t   kScarseHistoDef =   0.;         //  % of entries w.r.t. total bin number
+const Int_t     kScarseHistoMin =   1000.;      //  N of entries
+const Float_t   kLooseErrors    =   3.;         //  Multiplication factor for the Error looosening
 //
 //---------------------------------------//
 //- Physics is by defualt in GeV, we    -//
@@ -156,7 +157,7 @@ void    fPrintLoopTimer         ( TString fTimerName, Int_t iEvent, Int_t nEntri
 //------------------------------//
 //
 template < class Tclass >
-bool    fIsWorthFitting                         ( Tclass * aTarget )    {
+bool                fIsWorthFitting             ( Tclass * aTarget )    {
     if ( !aTarget ) {
         cout << "[ERROR] You are trying to fit a null histogram! Skipping this one..." << endl;
         return false;
@@ -177,6 +178,23 @@ bool    fIsWorthFitting                         ( Tclass * aTarget )    {
         }
     }
     return true;
+}
+//
+//_____________________________________________________________________________
+//
+template < class Tclass >
+Tclass *            fLooseErrors                ( Tclass * aTarget, Float_t fLooseErrors = kLooseErrors )    {
+    if ( fLooseErrors != kLooseErrors ) cout << "[INFO] Loosening factor for errors is different from the global set one, using the one provided in function call." << endl;
+    if ( fLooseErrors < 1 )             cout << "[WARNING] Loosening factor for errors is less than 1, meaning your errors are less than what they really are. This might be causing problems to the fit function." << endl;
+    if ( fLooseErrors == 1 )            cout << "[INFO] Loosening factor for errors is set to one, this is rendering this function useless. I'm returning a copy of the input." << endl;
+    Tclass     *fResult =   new Tclass(*aTarget);
+    if ( fLooseErrors == 1 )            return  fResult;
+    Int_t       fNBins  =   aTarget->GetNbinsX()*aTarget->GetNbinsY()*aTarget->GetNbinsZ();
+    for ( Int_t iBin = 1; iBin <= fNBins; iBin++ )
+    {
+        fResult ->  SetBinError(iBin,fLooseErrors*(aTarget->GetBinError(iBin)));
+    }
+    return fResult;
 }
 //
 //_____________________________________________________________________________
@@ -262,8 +280,8 @@ TGraphAsymmErrors*  fEfficiencycorrection       ( TH1   *fToBeCorrected, TH1    
 //_____________________________________________________________________________
 //
 //TCanvas*            fRatioPlot                  ( TH1   *fToBeCorrected, TH1    *fAccepted,  TH1    *fTotal,    Double_t fScale = 1. )  {
-    return nullptr;
-}
+//    return nullptr;
+//}
 //
 //------------------------------//
 //    GENERAL FUNCTIONS         //
