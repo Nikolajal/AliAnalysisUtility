@@ -73,6 +73,7 @@ const Bool_t    kFitScarseHisto =   kTRUE;      //  Skip the fit of histograms t
 const Float_t   kScarseHistoDef =   0.;         //  % of entries w.r.t. total bin number
 const Int_t     kScarseHistoMin =   1000.;      //  N of entries
 const Float_t   kLooseErrors    =   3.;         //  Multiplication factor for the Error looosening
+const Double_t  kMaximumError   =   100.;       //  Maximum percentage error to accept fit result, will retry if higher
 const Int_t     kRainbowColor[] =   {kRed+1,kOrange-1,kYellow+1,kSpring-1,kGreen+1,kTeal-1,kCyan+1,kAzure-1,kBlue+1,kViolet-1,kMagenta+1,kPink-1}; // Up to 12 spectra in Rainbow colours
 //
 //---------------------------------------//
@@ -299,7 +300,7 @@ void                fSetRainbowStyle            ( std::vector<Tclass*> fInputObj
 //_____________________________________________________________________________
 //
 bool                fIsResultAcceptable         ( Double_t fResult, Double_t fError )  {
-    return fError/fResult >= 1 ? false : true;
+    return (fError/fResult >= kMaximumError/100. ? false : true);
 }
 //
 //_____________________________________________________________________________
