@@ -73,6 +73,7 @@ const Bool_t    kFitScarseHisto =   kTRUE;      //  Skip the fit of histograms t
 const Float_t   kScarseHistoDef =   0.;         //  % of entries w.r.t. total bin number
 const Int_t     kScarseHistoMin =   1000.;      //  N of entries
 const Float_t   kLooseErrors    =   3.;         //  Multiplication factor for the Error looosening
+const Int_t     kRainbowColor[] =   {kRed+1,kOrange-1,kYellow+1,kSpring-1,kGreen+1,kTeal-1,kCyan+1,kAzure-1,kBlue+1,kViolet-1,kMagenta+1,kPink-1}; // Up to 12 spectra in Rainbow colours
 //
 //---------------------------------------//
 //- Physics is by defualt in GeV, we    -//
@@ -275,6 +276,30 @@ TGraphAsymmErrors*  fEfficiencycorrection       ( TH1   *fToBeCorrected, TH1    
     }
     //
     return  fResult;
+}
+//
+//_____________________________________________________________________________
+//
+template < class Tclass >
+void                fSetRainbowStyle            ( std::vector<Tclass*> fInputObjectLits, Int_t fStartIteratorAt = 0 )  {
+    TCanvas*    fResult     =   new TCanvas();
+    Int_t       fIterator   =   fStartIteratorAt;
+    for ( Tclass*&fObjectToPlot   :   fInputObjectLits )  {
+        if ( fIterator == 12 ) fIterator = 0;
+        fObjectToPlot->SetMarkerStyle(20+fIterator >= 31 ? 20+fIterator+1 : 20+fIterator );
+        fObjectToPlot->SetMarkerColor(kRainbowColor[fIterator]);
+        fObjectToPlot->SetLineWidth(2.);
+        fObjectToPlot->SetLineStyle(9);
+        fObjectToPlot->SetLineColor(kRainbowColor[fIterator]);
+        fIterator++;
+    }
+    return fResult;
+}
+//
+//_____________________________________________________________________________
+//
+bool                fIsResultAcceptable         ( Double_t fResult, Double_t fError )  {
+    return fError/fResult >= 1 ? false : true;
 }
 //
 //_____________________________________________________________________________
