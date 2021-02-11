@@ -226,6 +226,22 @@ TGraphAsymmErrors*  fSumGraphErrors             ( TGraphAsymmErrors* gBasic, TGr
 //
 //_____________________________________________________________________________
 //
+TGraphAsymmErrors*  fScaleWithError             ( TGraphAsymmErrors* gBasic, Double_t fScale, Double_t fScaleErrHigh = 0., Double_t fScaleErrLow = 0. )    {
+    TGraphAsymmErrors  *fResult =   new TGraphAsymmErrors(*gBasic);
+    for ( Int_t iFit = 0; iFit < fResult->GetN(); iFit++ ) {
+        auto    fYValue         =   ( gBasic ->  GetPointY(iFit) );
+        auto    fYErrBsicLow    =   ( gBasic ->  GetErrorYlow(iFit) );
+        auto    fYErrBsicHigh   =   ( gBasic ->  GetErrorYhigh(iFit) );
+        fResult ->  SetPointY       ( iFit, fYValue*fScale);
+        fResult ->  SetPointEYhigh  ( iFit, (fYValue*fScale)*sqrt(fYErrBsicHigh*fYErrBsicHigh/(fYValue*fYValue) + fScaleErrHigh*fScaleErrHigh/(fScale*fScale)));
+        fResult ->  SetPointEYlow   ( iFit, (fYValue*fScale)*sqrt(fYErrBsicLow*fYErrBsicLow/(fYValue*fYValue) + fScaleErrLow*fScaleErrLow/(fScale*fScale)));
+    }
+    //
+    return  fResult;
+}
+//
+//_____________________________________________________________________________
+//
 TGraphAsymmErrors*  fRandomizePoints            ( TGraphAsymmErrors* gStatic, TGraphAsymmErrors* gMoveable )    {
     //  Checking the consistency of TGraphs
     Int_t   fNPoints =   gStatic ->  GetN();
@@ -260,23 +276,48 @@ TGraphAsymmErrors*  fEfficiencycorrection       ( TH1   *fToBeCorrected, TH1    
     //  Checking the consistency of TH1*
     //
     //  Copying accordingly the TH1*
-    TGraphAsymmErrors  *fResult =   new TGraphAsymmErrors();
+    TGraphAsymmErrors  *fResult =   new TGraphAsymmErrors(fAccepted);
     //
     fResult->Divide(fAccepted,fTotal,"cl=0.683 b(1,1) mode");
     //
     Int_t   fNPoints =   fResult ->  GetN();
     for ( Int_t iFit = 0; iFit < fNPoints; iFit++ ) {
-        auto    fYValueResult   =   ( fToBeCorrected ->  GetBinContent(iFit+1) );
-        auto    fYErrorRstUnif  =   ( fToBeCorrected ->  GetBinError(iFit+1) );
+        auto    fYValueResult   =   ( fToBeCorrected ->  GetBinContent(iFit+3) );
+        auto    fYErrorRstUnif  =   ( fToBeCorrected ->  GetBinError(iFit+3) );
         auto    fYValueEffic    =   ( fResult ->  GetPointY(iFit) );
         auto    fYErrorEffHigh  =   ( fResult ->  GetErrorYhigh(iFit) );
         auto    fYErrorEffLow   =   ( fResult ->  GetErrorYlow(iFit) );
         fResult ->  SetPointY       (iFit,fScale*fYValueResult/fYValueEffic);
-        fResult ->  SetPointEYlow   (iFit,fScale*sqrt(fYErrorEffHigh*fYErrorEffHigh + fYErrorRstUnif*fYErrorRstUnif ));
-        fResult ->  SetPointEYhigh  (iFit,fScale*sqrt(fYErrorEffLow*fYErrorEffLow + fYErrorRstUnif*fYErrorRstUnif ));
+        fResult ->  SetPointEYlow   (iFit,(fScale*fYValueResult/fYValueEffic)*sqrt(fYErrorEffHigh*fYErrorEffHigh/(fYValueEffic*fYValueEffic) + fYErrorRstUnif*fYErrorRstUnif/(fYValueResult*fYValueResult) ));
+        fResult ->  SetPointEYhigh  (iFit,(fScale*fYValueResult/fYValueEffic)*sqrt(fYErrorEffLow*fYErrorEffLow/(fYValueEffic*fYValueEffic) + fYErrorRstUnif*fYErrorRstUnif/(fYValueResult*fYValueResult) ));
     }
     //
     return  fResult;
+}
+//
+//_____________________________________________________________________________// To Be Implemented ...
+//
+std::vector<TGraphAsymmErrors*> fEfficiencycorrection       ( TH2   *fToBeCorrected, TH2    *fAccepted,  TH2    *fTotal,    Double_t fScale = 1. )  {
+    return std::vector<TGraphAsymmErrors*>();
+}
+//
+//_____________________________________________________________________________
+//
+std::vector<TGraphAsymmErrors*> fEfficiencycorrection       ( TH2   *fToBeCorrected, TH1    *fAccepted,  TH1    *fTotal,    Double_t fScale = 1. )  {
+    std::vector<TGraphAsymmErrors*> fResult;
+    TGraphAsymmErrors  *fEfficiency =   new TGraphAsymmErrors(fAccepted);
+    fEfficiency ->  Divide(fAccepted,fTotal,"cl=0.683 b(1,1) mode");
+    for ( Int_t iHisto = 1; iHisto <= fToBeCorrected->GetNbinsX(); iHisto++ )    {
+        auto    fConditional    =   fToBeCorrected->ProjectionX(Form("dd_%i",iHisto),iHisto+1,iHisto+1);
+        if ( fConditional->GetEntries() == 0 ) continue;
+        auto    fAddition       =   fEfficiencycorrection(fConditional,fAccepted,fTotal,fScale);
+        auto    fConditionalEff =   fEfficiency->GetPointY(iHisto-2);
+        auto    fConditEffHigh  =   fEfficiency->GetErrorYhigh(iHisto-2);
+        auto    fConditEffLow   =   fEfficiency->GetErrorYlow(iHisto-2);
+        if ( fConditionalEff <= 0 ) cout <<  "ddd:" <<  fConditionalEff << endl;
+        fResult.push_back(fScaleWithError(fAddition, 1./fConditionalEff,fConditEffHigh/(fConditionalEff*fConditionalEff),fConditEffLow/(fConditionalEff*fConditionalEff)));
+    }
+    return fResult;
 }
 //
 //_____________________________________________________________________________
