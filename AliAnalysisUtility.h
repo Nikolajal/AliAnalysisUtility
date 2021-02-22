@@ -192,11 +192,16 @@ Tclass *            fLooseErrors                ( Tclass * aTarget, Float_t fLoo
     Tclass     *fResult =   new Tclass(*aTarget);
     if ( fLooseErrors == 1 )            return  fResult;
     Int_t       fNBins  =   aTarget->GetNbinsX()*aTarget->GetNbinsY()*aTarget->GetNbinsZ();
-    for ( Int_t iBin = 1; iBin <= fNBins; iBin++ )
-    {
+    for ( Int_t iBin = 1; iBin <= fNBins; iBin++ )  {
         fResult ->  SetBinError(iBin,fLooseErrors*(aTarget->GetBinError(iBin)));
     }
     return fResult;
+}
+//
+//_____________________________________________________________________________
+//
+bool                fCheckMask                  ( UChar_t fMask, Int_t iMaskBit )               {
+    return  ( ((int)pow(2,iMaskBit) & fMask)       ==  (int)pow(2,iMaskBit));
 }
 //
 //_____________________________________________________________________________
@@ -282,8 +287,8 @@ TGraphAsymmErrors*  fEfficiencycorrection       ( TH1   *fToBeCorrected, TH1    
     //
     Int_t   fNPoints =   fResult ->  GetN();
     for ( Int_t iFit = 0; iFit < fNPoints; iFit++ ) {
-        auto    fYValueResult   =   ( fToBeCorrected ->  GetBinContent(iFit+3) );
-        auto    fYErrorRstUnif  =   ( fToBeCorrected ->  GetBinError(iFit+3) );
+        auto    fYValueResult   =   ( fToBeCorrected ->  GetBinContent(iFit+1) );
+        auto    fYErrorRstUnif  =   ( fToBeCorrected ->  GetBinError(iFit+1) );
         auto    fYValueEffic    =   ( fResult ->  GetPointY(iFit) );
         auto    fYErrorEffHigh  =   ( fResult ->  GetErrorYhigh(iFit) );
         auto    fYErrorEffLow   =   ( fResult ->  GetErrorYlow(iFit) );
@@ -305,16 +310,18 @@ std::vector<TGraphAsymmErrors*> fEfficiencycorrection       ( TH2   *fToBeCorrec
 //
 std::vector<TGraphAsymmErrors*> fEfficiencycorrection       ( TH2   *fToBeCorrected, TH1    *fAccepted,  TH1    *fTotal,    Double_t fScale = 1. )  {
     std::vector<TGraphAsymmErrors*> fResult;
+    if ( !fToBeCorrected )  { cout << "No fToBeCorrected" << endl; return fResult; }
+    if ( !fAccepted )  { cout << "No fAccepted" << endl; return fResult; }
+    if ( !fTotal )  { cout << "No fTotal" << endl; return fResult; }
     TGraphAsymmErrors  *fEfficiency =   new TGraphAsymmErrors(fAccepted);
     fEfficiency ->  Divide(fAccepted,fTotal,"cl=0.683 b(1,1) mode");
     for ( Int_t iHisto = 1; iHisto <= fToBeCorrected->GetNbinsX(); iHisto++ )    {
-        auto    fConditional    =   fToBeCorrected->ProjectionX(Form("dd_%i",iHisto),iHisto+1,iHisto+1);
+        auto    fConditional    =   fToBeCorrected->ProjectionX(Form("dd_%i",iHisto),iHisto,iHisto);
         if ( fConditional->GetEntries() == 0 ) continue;
         auto    fAddition       =   fEfficiencycorrection(fConditional,fAccepted,fTotal,fScale);
-        auto    fConditionalEff =   fEfficiency->GetPointY(iHisto-2);
-        auto    fConditEffHigh  =   fEfficiency->GetErrorYhigh(iHisto-2);
-        auto    fConditEffLow   =   fEfficiency->GetErrorYlow(iHisto-2);
-        if ( fConditionalEff <= 0 ) cout <<  "ddd:" <<  fConditionalEff << endl;
+        auto    fConditionalEff =   fEfficiency->GetPointY(iHisto-1);
+        auto    fConditEffHigh  =   fEfficiency->GetErrorYhigh(iHisto-1);
+        auto    fConditEffLow   =   fEfficiency->GetErrorYlow(iHisto-1);
         fResult.push_back(fScaleWithError(fAddition, 1./fConditionalEff,fConditEffHigh/(fConditionalEff*fConditionalEff),fConditEffLow/(fConditionalEff*fConditionalEff)));
     }
     return fResult;
@@ -378,5 +385,16 @@ Double_t                fLevyFunc1D     ( Double_t * fVar, Double_t * fParams ) 
 TF1 *                   fLevyFit1D      = new TF1 ("fLevyFunc1D",fLevyFunc1D,0.,100.,4);
 //
 //_____________________________________________________________________________
-
+//
+bool                    fCheckFlag      (Int_t fFlag, Int_t fToBeChecked )  {
+    int fFlagCheck = (int)pow(2,fFlag);
+    return (fToBeChecked & fFlagCheck) == fFlagCheck;
+}
+//
+//_____________________________________________________________________________
+//
+bool                    fCheckMask      ( Int_t fToBeChecked, Int_t iMaskCheck )   {
+    return  ((fToBeChecked & (int)(pow(2,iMaskCheck))) == (int)(pow(2,iMaskCheck)));
+}
+//
 #endif
