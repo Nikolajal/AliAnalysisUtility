@@ -73,7 +73,7 @@ const Bool_t    kFitScarseHisto =   kTRUE;      //  Skip the fit of histograms t
 const Float_t   kScarseHistoDef =   0.;         //  % of entries w.r.t. total bin number
 const Int_t     kScarseHistoMin =   1000.;      //  N of entries
 const Float_t   kLooseErrors    =   3.;         //  Multiplication factor for the Error looosening
-const Double_t  kMaximumError   =   100.;       //  Maximum percentage error to accept fit result, will retry if higher
+const Double_t  kMaximumError   =   1.5;        //  Maximum percentage error to accept fit result, will retry if higher
 const Int_t     kRainbowColor[] =   {kRed+1,kOrange-1,kYellow+1,kSpring-1,kGreen+1,kTeal-1,kCyan+1,kAzure-1,kBlue+1,kViolet-1,kMagenta+1,kPink-1}; // Up to 12 spectra in Rainbow colours
 //
 //---------------------------------------//
@@ -82,10 +82,11 @@ const Int_t     kRainbowColor[] =   {kRed+1,kOrange-1,kYellow+1,kSpring-1,kGreen
 //- results in other units              -//
 //---------------------------------------//
 //
-auto const  KeV             =   1e6;
-auto const  MeV             =   1e3;
+// * Immitting % Recovering
+auto const  KeV             =   1e-6;
+auto const  MeV             =   1e-3;
 auto const  GeV             =   1;
-auto const  TeV             =   1e-3;
+auto const  TeV             =   1e+3;
 //
 //--------------------------------//
 //      BENCHMARK UTILITIES       //
@@ -200,6 +201,22 @@ Tclass *            fLooseErrors                ( Tclass * aTarget, Float_t fLoo
 //
 //_____________________________________________________________________________
 //
+TGraphAsymmErrors *     fLooseErrors            ( TGraphAsymmErrors * aTarget, Float_t fLooseErrors = kLooseErrors )    {
+    if ( fLooseErrors != kLooseErrors ) cout << "[INFO] Loosening factor for errors is different from the global set one, using the one provided in function call." << endl;
+    if ( fLooseErrors < 1 )             cout << "[WARNING] Loosening factor for errors is less than 1, meaning your errors are less than what they really are. This might be causing problems to the fit function." << endl;
+    if ( fLooseErrors == 1 )            cout << "[INFO] Loosening factor for errors is set to one, this is rendering this function useless. I'm returning a copy of the input." << endl;
+    TGraphAsymmErrors     *fResult =   new TGraphAsymmErrors(*aTarget);
+    if ( fLooseErrors == 1 )            return  fResult;
+    Int_t       fNBins  =   aTarget->GetN();
+    for ( Int_t iBin = 1; iBin <= fNBins; iBin++ )  {
+        fResult ->  SetPointEYhigh(iBin,fLooseErrors*(aTarget->GetErrorYhigh(iBin-1)));
+        fResult ->  SetPointEYlow(iBin,fLooseErrors*(aTarget->GetErrorYlow(iBin-1)));
+    }
+    return fResult;
+}
+//
+//_____________________________________________________________________________
+//
 bool                fCheckMask                  ( UChar_t fMask, Int_t iMaskBit )               {
     return  ( ((int)pow(2,iMaskBit) & fMask)       ==  (int)pow(2,iMaskBit));
 }
@@ -209,8 +226,7 @@ bool                fCheckMask                  ( UChar_t fMask, Int_t iMaskBit 
 TGraphAsymmErrors*  fSumGraphErrors             ( TGraphAsymmErrors* gBasic, TGraphAsymmErrors* gAddition )    {
     //  Checking the consistency of TGraphs
     Int_t   fNPoints =   gBasic ->  GetN();
-    if  ( fNPoints  != gAddition ->  GetN() )
-    {
+    if  ( fNPoints  != gAddition ->  GetN() )   {
         cout << "[ERROR] Systematics and Statistics do not have the same number of points! Skipping this one..." << endl;
         return nullptr;
     }
@@ -300,6 +316,34 @@ TGraphAsymmErrors*  fEfficiencycorrection       ( TH1   *fToBeCorrected, TH1    
     return  fResult;
 }
 //
+//_____________________________________________________________________________
+//
+TH1F*  fMakeMeTH1F                      ( TGraphAsymmErrors   *fToBeTransformed )  {
+    //  Checking the consistency of TH1*
+    Int_t       fNPoints    =   fToBeTransformed ->  GetN();
+    Double_t   *fBinArray   =   new Double_t    [fNPoints+1];
+    for ( Int_t iFit = 0; iFit < fNPoints; iFit++ ) {
+        auto    fXValue         =   ( fToBeTransformed ->  GetPointX(iFit) );
+        auto    fXErrorELow     =   ( fToBeTransformed ->  GetErrorXlow(iFit) );
+        fBinArray[iFit]         =   fXValue-fXErrorELow;
+    }
+    auto    fXValue         =   ( fToBeTransformed ->  GetPointX(fNPoints-1) );
+    auto    fXErrorELow     =   ( fToBeTransformed ->  GetErrorXhigh(fNPoints-1) );
+    fBinArray[fNPoints]     =   fXValue+fXErrorELow;
+    //
+    TH1F   *fResult =   new TH1F(Form("%s_toTH1F",fToBeTransformed->GetName()),fToBeTransformed->GetTitle(),fNPoints,fBinArray);
+    //
+    for ( Int_t iFit = 0; iFit < fNPoints; iFit++ ) {
+        auto    fYValue         =   ( fToBeTransformed ->  GetPointY(iFit) );
+        auto    fYErrorEHigh    =   ( fToBeTransformed ->  GetErrorYhigh(iFit) );
+        auto    fYErrorELow     =   ( fToBeTransformed ->  GetErrorYlow(iFit) );
+        fResult ->  SetBinContent   (iFit+1,fYValue);
+        fResult ->  SetBinError     (iFit+1,max(fYErrorEHigh,fYErrorELow));
+    }
+    //
+    return  fResult;
+}
+//
 //_____________________________________________________________________________// To Be Implemented ...
 //
 std::vector<TGraphAsymmErrors*> fEfficiencycorrection       ( TH2   *fToBeCorrected, TH2    *fAccepted,  TH2    *fTotal,    Double_t fScale = 1. )  {
@@ -315,14 +359,38 @@ std::vector<TGraphAsymmErrors*> fEfficiencycorrection       ( TH2   *fToBeCorrec
     if ( !fTotal )  { cout << "No fTotal" << endl; return fResult; }
     TGraphAsymmErrors  *fEfficiency =   new TGraphAsymmErrors(fAccepted);
     fEfficiency ->  Divide(fAccepted,fTotal,"cl=0.683 b(1,1) mode");
-    for ( Int_t iHisto = 1; iHisto <= fToBeCorrected->GetNbinsX(); iHisto++ )    {
-        auto    fConditional    =   fToBeCorrected->ProjectionX(Form("dd_%i",iHisto),iHisto,iHisto);
+    for ( Int_t iHisto = 1; iHisto <= fToBeCorrected->GetNbinsY(); iHisto++ )    {
+        auto    fConditional    =   fToBeCorrected->ProjectionY(Form("dd_%i",iHisto),iHisto,iHisto);
         if ( fConditional->GetEntries() == 0 ) continue;
         auto    fAddition       =   fEfficiencycorrection(fConditional,fAccepted,fTotal,fScale);
         auto    fConditionalEff =   fEfficiency->GetPointY(iHisto-1);
         auto    fConditEffHigh  =   fEfficiency->GetErrorYhigh(iHisto-1);
         auto    fConditEffLow   =   fEfficiency->GetErrorYlow(iHisto-1);
         fResult.push_back(fScaleWithError(fAddition, 1./fConditionalEff,fConditEffHigh/(fConditionalEff*fConditionalEff),fConditEffLow/(fConditionalEff*fConditionalEff)));
+    }
+    return fResult;
+}
+//
+//_____________________________________________________________________________
+//
+TGraphAsymmErrors*              fEfficiencycorrection       ( TGraphAsymmErrors    *fToBeCorrected,    TGraphAsymmErrors   *fEfficiency,     Double_t fScale = 1. )  {
+    //  Checking the consistency of TGraphs
+    Int_t   fNPoints =   fToBeCorrected ->  GetN();
+    if  ( fNPoints  != fEfficiency ->  GetN() )   {
+        cout << "[ERROR] Systematics and Statistics do not have the same number of points! Skipping this one..." << endl;
+        return nullptr;
+    }
+    TGraphAsymmErrors  *fResult =   new TGraphAsymmErrors(*fToBeCorrected);
+    for ( Int_t iHisto = 1; iHisto <= fNPoints; iHisto++ )    {
+        auto    fTargetY        =   fToBeCorrected->GetPointY(iHisto-1);
+        auto    fEfficnY        =   fEfficiency->GetPointY(iHisto-1);
+        auto    fTargetYlow     =   fToBeCorrected->GetErrorYlow(iHisto-1);
+        auto    fEfficnYlow     =   fEfficiency->GetErrorYlow(iHisto-1);
+        auto    fTargetYhigh    =   fToBeCorrected->GetErrorYlow(iHisto-1);
+        auto    fEfficnYhigh    =   fEfficiency->GetErrorYlow(iHisto-1);
+        fResult->SetPointY      (iHisto-1,  fTargetY*fEfficnY*fScale);
+        fResult->SetPointEYlow  (iHisto-1,  sqrt(fTargetYlow*fTargetYlow+fEfficnYlow*fEfficnYlow));
+        fResult->SetPointEYhigh (iHisto-1,  sqrt(fTargetYhigh*fTargetYhigh+fEfficnYhigh*fEfficnYhigh));
     }
     return fResult;
 }
@@ -347,10 +415,52 @@ void                fSetRainbowStyle            ( std::vector<Tclass*> fInputObj
 //
 //_____________________________________________________________________________
 //
-bool                fIsResultAcceptable         ( Double_t fResult, Double_t fError )  {
-    return (fError/fResult >= kMaximumError/100. ? false : true);
+bool                fIsResultAcceptable         ( Double_t fResult, Double_t fError, Double_t fTolerance )  {
+    return (fError/fResult >= fTolerance/100. ? false : true);
 }
 //
+//_____________________________________________________________________________
+//
+bool                fIsResultAcceptable         ( Double_t fResult, Double_t fError )  {
+    return fIsResultAcceptable(fResult,fError,kMaximumError);
+}
+//
+//_____________________________________________________________________________
+//
+TCanvas*            fPublishSpectrum                ( TGraphAsymmErrors *gStat, TGraphAsymmErrors *gSyst, Int_t kColor = 2, Int_t kMarker = 8, TString fOption = "" )  {
+    TCanvas        *fResult         =   new TCanvas();
+    //fResult         ->  SetLogy();
+    
+    //  Prepping Stat Graph
+    gStat           ->  SetMarkerStyle(kMarker);
+    gStat           ->  SetMarkerColor(kColor);
+    gStat           ->  SetFillColorAlpha(kColor,0.0);
+    gStat           ->  SetLineColor(kColor);
+    
+    //  Prepping Syst Graph
+    gSyst           ->  SetMarkerStyle(kMarker);
+    gSyst           ->  SetMarkerColor(kColor);
+    gSyst           ->  SetLineColor(kColor);
+    gSyst           ->  SetFillColorAlpha(kColor,0.4);
+    
+    //  Prepping the multigraph
+    TMultiGraph    *fPlotResult     =   new TMultiGraph();
+    fPlotResult     ->  Add(gStat,"PE5");
+    fPlotResult     ->  Add(gSyst,"PE2");
+    fPlotResult     ->  Draw("A");
+    
+    //  Prepping Legend
+    TLegend        *fLegendResult   =   new TLegend(0.7,0.7,0.9,0.9);
+    fLegendResult   ->  SetFillStyle(0);
+    fLegendResult   ->  SetBorderSize(0);
+    fLegendResult   ->  AddEntry(gStat,"","EPF");
+    fLegendResult   ->  AddEntry(gSyst,"","PF");
+    fLegendResult   ->  Draw("same");
+    
+    fResult         ->  SaveAs("tt.pdf");
+    fResult         ->  Write();
+    return      fResult;
+}
 //_____________________________________________________________________________
 //
 //TCanvas*            fRatioPlot                  ( TH1   *fToBeCorrected, TH1    *fAccepted,  TH1    *fTotal,    Double_t fScale = 1. )  {
@@ -379,10 +489,34 @@ Double_t                fLevyFunc1D     ( Double_t * fVar, Double_t * fParams ) 
     
     return      fPT*fdNdY*fFac1*fFac2;
 }
+TF1 *                   fLevyFit1D      = new TF1 ("fLevyFunc1D",fLevyFunc1D,0.,100.,4);
 //
 //_____________________________________________________________________________
 //
-TF1 *                   fLevyFit1D      = new TF1 ("fLevyFunc1D",fLevyFunc1D,0.,100.,4);
+Double_t                fAsymmGauss     ( Double_t * fVar, Double_t * fParams ) {
+    auto    fIsFluctLow     =   true;
+    ( fRandomGen  ->  Uniform (0.,1.) ) > 0.5? fIsFluctLow = true : fIsFluctLow = false;
+    Double_t    fPT     = fVar[0];
+    Double_t    fMass   = fParams[0];
+    Double_t    fEnne   = fParams[1];
+    Double_t    fSlop   = fParams[2];
+    Double_t    fdNdY   = fParams[3];
+    
+    Double_t    fNum1   = (fEnne-1)*(fEnne-2);
+    Double_t    fDen1   = fEnne*fSlop*(fEnne*fSlop+fMass*(fEnne-2));
+    Double_t    fFac1   = fNum1/fDen1;
+    
+    Double_t    fMasT   = sqrt(fMass*fMass+fPT*fPT);
+    Double_t    fNum2   = fMasT - fMass;
+    Double_t    fDen2   = fEnne*fSlop;
+    Double_t    fFac2   = TMath::Power((1 + fNum2/fDen2),(-fEnne));
+    
+    return      1.;
+}
+TF1 *                   fFitAsymmGauss      = new TF1 ("fLevyFunc1D",fLevyFunc1D,0.,100.,4);
+//
+//_____________________________________________________________________________
+//
 //
 //_____________________________________________________________________________
 //
@@ -396,5 +530,19 @@ bool                    fCheckFlag      (Int_t fFlag, Int_t fToBeChecked )  {
 bool                    fCheckMask      ( Int_t fToBeChecked, Int_t iMaskCheck )   {
     return  ((fToBeChecked & (int)(pow(2,iMaskCheck))) == (int)(pow(2,iMaskCheck)));
 }
+//
+//_____________________________________________________________________________
+//
+bool                    fBarlowCheck    ( Double_t  fStandard, Double_t fStdError, Double_t fVariatin, Double_t fVarError )  {
+    //return false;
+    auto    fSigmaStd       =   fStdError*fStdError;
+    auto    fSigmaVar       =   fVarError*fVarError;
+    auto    fSigmaDff       =   TMath::Sqrt( fabs( fSigmaStd - fSigmaVar ) );
+    if      ( fSigmaDff    == 0 )  return false;
+    auto    fParameter      =   fabs( fStandard - fVariatin )/fSigmaDff;
+    return  ( fParameter   <= 1 );
+}
+//
+//_____________________________________________________________________________
 //
 #endif
