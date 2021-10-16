@@ -66,6 +66,9 @@ TRandom            *uRandomGen                      =   new TRandom();
 TBenchmark         *uBenchmark                      =   new TBenchmark();
 // TLatex
 TLatex             *uLatex                          =   new TLatex();
+
+// TO BE CLEANED UP
+auto iBuilderTH1FCounter = 0;
 // Title and Name for histograms
 auto                hName                           =   "Name";
 auto                hTitle                          =   "Title";
@@ -146,7 +149,7 @@ SquareSum
 //      BENCHMARK UTILITIES       //
 //--------------------------------//
 //
-TString                 kMSG_PrintTimer             =   "[INFO] Event # %4.f %s | %02.0f %% | %2.2f %s events/s | Time: %02.0f:%02.0f | ETA: %02.0f:%02.0f \n";
+TString                 kMSG_PrintTimer             =   "\r[INFO] Event # %7.f %s | %3.1f %% | %7.2f %s events/s | Time: %02.0f:%02.0f:%02.0f | ETA: %02.0f:%02.0f:%02.0f";
 //
 void
 fStartTimer
@@ -160,6 +163,7 @@ void
 fStopTimer
  ( TString fTimerName )     {
     uBenchmark->Stop(fTimerName.Data());
+    cout << endl;
     printf("[INFO] Stopping %s \n", fTimerName.Data());
     Float_t fElapsedS   = (float)(uBenchmark->GetRealTime(fTimerName.Data()));
     Float_t fElapsedM   = (Int_t)(fElapsedS/60.);
@@ -190,23 +194,40 @@ fPrintLoopTimer
     
     // Stopping timer
     uBenchmark->Stop(fTimerName.Data());
+
+    //
+    //  Elapsed Time
+    Float_t fRealElapsedSec =   (float)(uBenchmark->GetRealTime(fTimerName.Data()));
+    Float_t fRealElapsedMin =   (Int_t)(fRealElapsedSec/60.);
+    Float_t fRealElapsedHor =   (Int_t)(fRealElapsedSec/3600.);
+    //
+    Float_t fShowElapsedSec =   fRealElapsedSec - fRealElapsedMin*60.;
+    Float_t fShowElapsedMin =   fRealElapsedMin - fRealElapsedHor*60.;
+    Float_t fShowElapsedHor =   fRealElapsedHor;
     
-    // Evaluating informations
-    Float_t fFraction   =   (float)iEvent/((float)nEntries);
-    Float_t fElapsedS   =   (float)(uBenchmark->GetRealTime(fTimerName.Data()));
-    Float_t fElapsedM   =   (Int_t)(fElapsedS/60.);
-    Float_t fPrintEvt   =   (float)iEvent*(float)fSfxCor/((float)iPrintInterval);
-    Float_t fSpeedvsS   =   fPrintEvt/fElapsedS;
-    Float_t fEta____S   =   (Int_t)(fElapsedS*((float)nEntries/((float)iEvent) -1));
-    Float_t fEta____M   =   (Int_t)(fEta____S/60.);
+    //
+    //  Event utilities
+    Float_t fProcessedFrac  =   (float)iEvent/((float)nEntries);
+    Float_t fShowPrintEvnt  =   (float)iEvent*(float)fSfxCor/((float)iPrintInterval);   //TODO: Clean-Up
+    Float_t fShowSpeedEvnt  =   fShowPrintEvnt/fRealElapsedSec;
     
-    // Printing
-    "[INFO] Event # %4.f %s | %02.0f %% | %1.2f %s events/s | Time: %02.0f:%02.0f | ETA: %02.0f:%02.0f \n";
-    printf(kMSG_PrintTimer.Data(),  fPrintEvt,  fSuffix.Data(), 100.*fFraction, fSpeedvsS,  fSuffix.Data(), fElapsedM,  fElapsedS -60.*fElapsedM,  fEta____M,  fEta____S -60.*fEta____M);
-    fflush(stdout);
+    //
+    //  ETA
+    Float_t fRealEstimatSec =   fRealElapsedSec/fProcessedFrac - fRealElapsedSec;
+    Float_t fRealEstimatMin =   (Int_t)(fRealEstimatSec/60.);
+    Float_t fRealEstimatHor =   (Int_t)(fRealEstimatSec/3600.);
+    //
+    Float_t fShowEstimatSec =   fRealEstimatSec - fRealEstimatMin*60.;
+    Float_t fShowEstimatMin =   fRealEstimatMin - fRealEstimatHor*60.;
+    Float_t fShowEstimatHor =   fRealEstimatHor;
+    
     
     // Resuming timer
     uBenchmark->Start(fTimerName.Data());
+    
+    // Printing
+    cout << "\33[2K" << flush;
+    cout << Form(kMSG_PrintTimer.Data(),  fShowPrintEvnt,  fSuffix.Data(), 100.*fProcessedFrac, fShowSpeedEvnt,  fSuffix.Data(), fShowElapsedHor, fShowElapsedMin,  fShowElapsedSec, fShowEstimatHor, fShowEstimatMin, fShowEstimatSec) << flush;
 }
 //
 //------------------------------//
@@ -231,8 +252,9 @@ uBuildTH1F
         if      ( fSizeOfAr >= 1.e3 )   fNofBins = (int)(fSizeOfAr/5.) + 2;
         if      ( fSizeOfAr >= 1.e3 )   fNofBins = 216;
     }
-    TH1F   *fBuiltTH1F  =   new TH1F("TH1F_from_vector","TH1F_from_vector",fNofBins,fLowBound,fHigBound);
+    TH1F   *fBuiltTH1F  =   new TH1F(Form("TH1F_from_vector_%i",iBuilderTH1FCounter),Form("TH1F_from_vector_%i",iBuilderTH1FCounter),fNofBins,fLowBound,fHigBound);
     for     ( auto iValue : fInputData )    fBuiltTH1F->Fill( iValue + fOffset );
+    iBuilderTH1FCounter++;
     return  fBuiltTH1F;
 }
 //
@@ -452,10 +474,10 @@ uSetHisto
 ( TGraphMultiErrors* hTarget, TString fOption = "" ){
     hTarget->SetTitle("");
     hTarget->GetYaxis()->SetTitle("1/N_{ev}dN/dy");
-    hTarget->GetXaxis()->SetNdivisions(2);
-    hTarget->GetXaxis()->SetBinLabel(hTarget->GetXaxis()->FindBin(1),"#LT Y_{1#phi} #GT");
-    hTarget->GetXaxis()->SetBinLabel(hTarget->GetXaxis()->FindBin(2),"#LT Y_{2#phi} #GT");
-    hTarget->GetXaxis()->LabelsOption("h");
+    //hTarget->GetXaxis()->SetNdivisions(2);
+    //hTarget->GetXaxis()->SetBinLabel(hTarget->GetXaxis()->FindBin(1),"#LT Y_{1#phi} #GT");
+    //hTarget->GetXaxis()->SetBinLabel(hTarget->GetXaxis()->FindBin(2),"#LT Y_{2#phi} #GT");
+    //hTarget->GetXaxis()->LabelsOption("h");
     hTarget->GetXaxis()->SetLabelSize(0.08);
     hTarget->SetLineColorAlpha(0.,0.);
     hTarget->SetMarkerStyle(21);
@@ -491,8 +513,10 @@ TGraphAsymmErrors      *fSumErrors                  ( TGraphAsymmErrors* gBasic,
     //
     return  fResult;
 }
-TH1F                   *fSumErrors                  ( TH1F* gBasic, TH1F* gAddition )    {
-    TH1F  *fResult =   new TH1F(*gBasic);
+//
+template < class Tclass >
+Tclass                   *fSumErrors                  ( Tclass* gBasic, Tclass* gAddition )    {
+    Tclass  *fResult =   new Tclass(*gBasic);
     for ( Int_t iBin = 0; iBin < gBasic->GetNbinsX(); iBin++ ) {
         fResult ->  SetBinError( iBin, SquareSum( { gBasic->GetBinError(iBin), gAddition->GetBinError(iBin) } ) );
     }
@@ -553,13 +577,16 @@ TGraphAsymmErrors      *uRandomizePoints            ( TGraphAsymmErrors* gStatic
     }
     return  fSumErrors(fResult,gMoveable);
 }
-TH1F                   *uRandomizePoints            ( TH1F* gStatic, TH1F* gMoveable )    {
-    TH1F  *fResult =   new TH1F(*gStatic);
+//
+template < class Tclass >
+Tclass*                 uRandomizePoints            ( Tclass* gStatic, Tclass* gMoveable )    {
+    Tclass* fResult =   (Tclass*)(gStatic->Clone());
     for ( Int_t iBin = 0; iBin < gStatic->GetNbinsX(); iBin++ ) {
-        auto    fBinContent =   gStatic->GetBinContent(iBin);
-        auto    fMoveError  =   gMoveable->GetBinError(iBin);
-        fResult->SetBinContent  ( iBin, uRandomGen -> Gaus(fBinContent,fMoveError) );
-        fResult->SetBinError    ( iBin, fMoveError );
+        auto    fBinContent =   gStatic->GetBinContent(iBin+1);
+        auto    fMoveError  =   gMoveable->GetBinError(iBin+1);
+        auto fTest = uRandomGen -> Gaus(fBinContent,fMoveError);
+        fResult->SetBinContent  ( iBin+1, fTest );
+        fResult->SetBinError    ( iBin+1, fMoveError );
     }
     return  fSumErrors(fResult,gMoveable);
 }
@@ -758,7 +785,7 @@ TCanvas                *uPlotReferenceValue         ( TH1*  hMeasured,    Float_
 template < class Tclass >
 bool                    fIsWorthFitting             ( Tclass * aTarget )    {
     if ( !aTarget ) {
-        cout << "[ERROR] You are trying to fit a null histogram! Skipping this one..." << endl;
+        cout << "[ERROR] You are trying to fit a null histogram! Skipping " << aTarget->GetName() << endl;
         return false;
     }
     if (  aTarget->GetEntries() == 0. ) {
@@ -1152,8 +1179,11 @@ uBuildSystematicStack
         hSTDV   ->  SetBinContent   ( iBin, uBinVariation->GetRMS()        );
         hSTDV   ->  SetBinError     ( iBin, 0   );
     }
+    hMean           ->  Scale(100);
+    hSTDV           ->  Scale(100);
     hResults        ->  Add(hMean);
     hResults        ->  Add(hSTDV);
+    
     return  hResults;
 }
 std::vector<THStack*>
@@ -1253,6 +1283,8 @@ uEvaluateRatioError
     auto    iTer    =   0;
     std::vector<Float_t>   kSimpleRatio;
     std::vector<Float_t>   kSquareRatio;
+    std::vector<Float_t>   k1Phi_Sng;
+    std::vector<Float_t>   k2Phi_Sng;
     auto    k1DStdIntegralErr  =   0.;
     auto    k2DStdIntegralErr  =   0.;
     auto    k1DStdIntegral     =   h1DStandard->IntegralAndError(-1,10000,k1DStdIntegralErr,"width");
@@ -1267,6 +1299,8 @@ uEvaluateRatioError
         auto    k1Dintegral     =   h1DVariations.at(iTer)->Integral("width");
         auto    k2Dintegral     =   h2DVariations.at(iTer)->Integral("width");
         //
+        k1Phi_Sng.push_back(k1Dintegral/k1DStdIntegral -1);
+        k2Phi_Sng.push_back(k2Dintegral/k2DStdIntegral -1);
         kSimpleRatio.push_back((k1DStdIntegral*k2Dintegral)/(k1Dintegral*k2DStdIntegral)-1);
         kSquareRatio.push_back((k1DStdIntegral*k1DStdIntegral*k2Dintegral)/(k1Dintegral*k1Dintegral*k2DStdIntegral)-1);
         iTer++;
@@ -1276,10 +1310,18 @@ uEvaluateRatioError
     auto        fSimpleRatioError   =   0.;
     TH1F       *hSquareRatioError   =   uBuildTH1F(kSquareRatio,2000,0,-0.5,0.5);
     auto        fSquareRatioError   =   0.;
+    TH1F       *h1Phi_Sng_Error     =   uBuildTH1F(k1Phi_Sng,2000,0,-0.5,0.5);
+    auto        f1Phi_Sng_Error     =   0.;
+    TH1F       *h2Phi_Sng_Error     =   uBuildTH1F(k2Phi_Sng,2000,0,-0.5,0.5);
+    auto        f2Phi_Sng_Error     =   0.;
     fSimpleRatioError   +=  fabs(hSimpleRatioError->GetMean());
     fSimpleRatioError   +=  hSimpleRatioError->GetRMS();
     fSquareRatioError   +=  fabs(hSquareRatioError->GetMean());
     fSquareRatioError   +=  hSquareRatioError->GetRMS();
+    f1Phi_Sng_Error     +=  fabs(h1Phi_Sng_Error->GetMean());
+    f1Phi_Sng_Error     +=  h1Phi_Sng_Error->GetRMS();
+    f2Phi_Sng_Error     +=  fabs(h2Phi_Sng_Error->GetMean());
+    f2Phi_Sng_Error     +=  h2Phi_Sng_Error->GetRMS();
     //
     TH1F   *hStandard   =   new TH1F("hStandard",   "", 2,  0,  2);
     hStandard->GetYaxis()->SetTitle("Systematic uncertainty (%)");
@@ -1295,6 +1337,20 @@ uEvaluateRatioError
     hStandard->SetBinError  (1,0);
     hStandard->SetBinError  (2,0);
     hStandard->Scale(100);
+    TH1F   *hStandard_Sng   =   new TH1F("hStandard_Sng",   "", 2,  0,  2);
+    hStandard_Sng->GetYaxis()->SetTitle("Systematic uncertainty (%)");
+    hStandard_Sng->GetXaxis()->SetNdivisions(2);
+    hStandard_Sng->GetXaxis()->SetBinLabel(hStandard->GetXaxis()->FindBin(0.5),"#LT Y_{#phi} #GT");
+    hStandard_Sng->GetXaxis()->SetBinLabel(hStandard->GetXaxis()->FindBin(1.5),"#LT Y_{#phi#phi} #GT");
+    hStandard_Sng->GetXaxis()->LabelsOption("h");
+    hStandard_Sng->SetMarkerColor(colors[3]);
+    hStandard_Sng->SetLineWidth(3);
+    hStandard_Sng->SetMarkerStyle(markers[3]);
+    hStandard_Sng->SetBinContent(1,f1Phi_Sng_Error);
+    hStandard_Sng->SetBinContent(2,f2Phi_Sng_Error);
+    hStandard_Sng->SetBinError  (1,0);
+    hStandard_Sng->SetBinError  (2,0);
+    hStandard_Sng->Scale(100);
     TH1F   *hSimple     =   new TH1F("hLinear",     "", 2,  0,  2);
     hSimple->SetMarkerColor(colors[2]);
     hSimple->SetLineWidth(3);
@@ -1304,6 +1360,15 @@ uEvaluateRatioError
     hSimple->SetBinError  (1,0);
     hSimple->SetBinError  (2,0);
     hSimple->Scale(100);
+    TH1F   *hSimple_Sng     =   new TH1F("hLinear_Sng",     "", 2,  0,  2);
+    hSimple_Sng->SetMarkerColor(colors[2]);
+    hSimple_Sng->SetLineWidth(3);
+    hSimple_Sng->SetMarkerStyle(markers[4]);
+    hSimple_Sng->SetBinContent(1,k1DStdIntegralErr);
+    hSimple_Sng->SetBinContent(2,k2DStdIntegralErr);
+    hSimple_Sng->SetBinError  (1,0);
+    hSimple_Sng->SetBinError  (2,0);
+    hSimple_Sng->Scale(100);
     TH1F   *hSquare     =   new TH1F("hSquare",     "", 2,  0,  2);
     hSquare->SetMarkerColor(colors[1]);
     hSquare->SetLineWidth(3);
@@ -1316,6 +1381,8 @@ uEvaluateRatioError
     //
     auto fMaximum  = 100 * max ( 2*k1DStdIntegralErr+k2DStdIntegralErr, max (fSimpleRatioError, fSquareRatioError ) );
     hStandard->SetMaximum(fMaximum*1.3);
+    fMaximum  = 100 * max ( k2DStdIntegralErr, f2Phi_Sng_Error );
+    hStandard_Sng->SetMaximum(fMaximum*1.3);
     //
     gROOT->SetBatch();
     TCanvas    *c1 = new TCanvas("Ratio");
@@ -1331,6 +1398,20 @@ uEvaluateRatioError
     lLegend->Draw("same");
     //
     c1->SaveAs((fFolder+TString("/plots/Ratio.pdf")).Data());
+    delete c1;
+    delete lLegend;
+    //
+                c1      = new TCanvas("Ratio");
+    //
+                lLegend = new TLegend(0.18,0.82,0.33,0.72);
+    lLegend     ->  AddEntry( hStandard,    "Yield err.", "P" );
+    lLegend     ->  AddEntry( hSimple,      "Integral err.", "P" );
+    //
+    hStandard_Sng->Draw("][ EP MIN0");
+    hSimple_Sng->Draw("SAME EP ][");
+    lLegend->Draw("same");
+    //
+    c1->SaveAs((fFolder+TString("/plots/Ratio_Sng.pdf")).Data());
     delete c1;
     //
     TCanvas    *c2 = new TCanvas("Ratio_Simple");
@@ -1487,7 +1568,6 @@ uHistoIntegralAndError
     auto    iHisto  =   0;
     for ( auto uTarget : fInputData )   {
         iHisto++;
-        cout << iHisto << endl;
         auto fPrevEr    =   fResult[1];
         auto fError     =   0.;
         auto fIntegral  =   uTarget->IntegralAndError(iHisto+1,10000,fError,"width");
