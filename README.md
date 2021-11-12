@@ -1,2 +1,2 @@
-# RHUPA
-Root Histogram Utilities for Physics Analysis
+# AliAnalysisUtility
+Various utilities for ALICE physics Analysis
