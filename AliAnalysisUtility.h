@@ -208,39 +208,6 @@ void                    uTestGoodParameters         ( TGraphAsymmErrors *gTarget
 //
 //_____________________________________________________________________________
 //
-
-//-------------------------------------//
-//    GENERAL MULTIPURPOSE UTILITIES   //
-//-------------------------------------//
-//
-//  --  --  BITMask Utilities  --  --  //
-//
-//_____________________________________________________________________________
-//
-bool                    fCheckMask                  ( Int_t fToBeChecked, Int_t iMaskCheck, Bool_t fOnlyThis = false )    {
-    if ( fToBeChecked == 0  )   return false;
-    if ( !fOnlyThis )   return  ( fToBeChecked &    BIT(iMaskCheck) );
-    else                return  ( fToBeChecked ==   BIT(iMaskCheck) );
-}
-//
-//_____________________________________________________________________________
-//
-//  --  --  Systematcis Utilities  --  --  //
-//
-//_____________________________________________________________________________
-//
-Double_t                uBarlowPar    ( Double_t  fStandard, Double_t fStdError, Double_t fVariatin, Double_t fVarError )  {
-    auto    fSigmaStd       =   fStdError*fStdError;
-    auto    fSigmaVar       =   fVarError*fVarError;
-    auto    fSigmaDff       =   TMath::Sqrt( fabs( fSigmaStd - fSigmaVar ) );
-    if      ( fSigmaDff    == 0 )  return false;
-    auto    fParameter      =   ( fStandard - fVariatin )/fSigmaDff;
-    return  fParameter;
-}
-bool                    fBarlowCheck    ( Double_t  fStandard, Double_t fStdError, Double_t fVariatin, Double_t fVarError )  {
-    //return false;
-    return  ( fabs ( uBarlowPar    ( fStandard, fStdError, fVariatin, fVarError ) )    <= 1 );
-}
 //
 //_____________________________________________________________________________
     
