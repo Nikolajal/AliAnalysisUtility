@@ -29,4 +29,7 @@ auto const          KeV                             =   1e-6;
 auto const          MeV                             =   1e-3;
 auto const          GeV                             =   1;
 auto const          TeV                             =   1e+3;
+//
+//>>    BenchMark Utility
+TString                 kMSG_PrintTimer             =   "\r[INFO] [%s] Event # %7.f %s | %3.1f %% | %7.2f %s events/s | Time: %02.0f:%02.0f:%02.0f | ETA: %02.0f:%02.0f:%02.0f [%s]";
 #endif
