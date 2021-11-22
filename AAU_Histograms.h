@@ -24,7 +24,7 @@ template < class THXTarget_Type >
 Int_t
 uGetTHDimension
  ( THXTarget_Type*   fTarget ) {
-    TH1* kTObj1DTestTarget  =   dynamic_cast< TObject* >( fTarget );
+    TObject* kTObj1DTestTarget  =   dynamic_cast< TObject* >( fTarget );
     TH1* kHist1DTestTarget  =   dynamic_cast< TH1* >( fTarget );
     if ( !kHist1DTestTarget )   {
         if ( !kHist1DTestTarget &&  kTObj1DTestTarget ) cout << "[ERROR] Target " << fTarget->GetName() << " is not a histogram!" << endl;
