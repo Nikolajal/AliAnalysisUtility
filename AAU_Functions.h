@@ -1,5 +1,11 @@
-// Global Values and constants file
 //
+//  Part of the AliAnalysisUtility package
+//
+//  Fit Functions
+//
+//  Author              Nicola Rubini
+//  Created             22/11/2021
+//  Last modified       22/11/2021
 #ifndef ALIANALYSISUTILITY_FUNCTIONS_H
 #define ALIANALYSISUTILITY_FUNCTIONS_H
 //
