@@ -237,24 +237,15 @@ uScale
     auto    fResult     =   (TH_Type*)(hTarget->Clone());
     if ( nDimension < 0 ) return fResult;
     for ( Int_t iBin = 1; iBin <= fResult->GetNbinsX(); iBin++ ) {
-        if ( nDimension == 1 )  {
-            fResult ->  SetBinContent   ( iBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin ) );
-            if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, fScaleError * hTarget ->  GetBinError     ( iBin ) );
-            continue;
-        }
         for ( Int_t jBin = 1; jBin <= fResult->GetNbinsY(); jBin++ ) {
-            if ( nDimension == 2 )  {
-                fResult ->  SetBinContent   ( iBin, jBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin, jBin ) );
-                if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, jBin, fScaleError * hTarget ->  GetBinError     ( iBin, jBin ) );
-                continue;
-            }
             for ( Int_t kBin = 1; kBin <= fResult->GetNbinsZ(); kBin++ ) {
-                fResult ->  SetBinContent   ( iBin, jBin, kBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin, jBin, kBin ) );
-                if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, jBin, kBin, fScaleError * hTarget ->  GetBinError     ( iBin, jBin, kBin ) );
-                
+                auto    kGlobalBin  =   fResult->GetBin( iBin, jBin, kBin );
+                if ( fScaleError < 0 )  fResult ->  SetBinContent   ( kGlobalBin, fScaleFactor  * hTarget   ->  GetBinContent   ( iBin ) );
+                else                    fResult ->  SetBinError     ( kGlobalBin, fScaleError   * hTarget   ->  GetBinError     ( iBin ) );
             }
         }
     }
+    return fResult;
 }
 //
 // TODO: Generalise w/ TH_Type_3 as return
@@ -266,26 +257,53 @@ uSumErrors
     TH_Type_3*  fResult =   (TH_Type_3*)(hTarget_1->Clone());
     if ( nDimension < 0 )   return  fResult;
     for ( Int_t iBin = 1; iBin <= fResult->GetNbinsX(); iBin++ ) {
-        if ( nDimension == 1 )  {
-            if ( TSquareSum )   fResult ->  SetBinError     ( iBin, SquareSum( { hTarget_1 ->  GetBinError     ( iBin ), hTarget_2 ->  GetBinError     ( iBin ) } ) );
-            else                fResult ->  SetBinError     ( iBin, hTarget_1 ->  GetBinError     ( iBin ) + hTarget_2 ->  GetBinError     ( iBin ) );
-            continue;
-        }
         for ( Int_t jBin = 1; jBin <= fResult->GetNbinsY(); jBin++ ) {
-            if ( nDimension == 2 )  {
-                if ( TSquareSum )   fResult ->  SetBinError     ( iBin, jBin, SquareSum( { hTarget_1 ->  GetBinError     ( iBin, jBin ), hTarget_2 ->  GetBinError     ( iBin, jBin ) } ) );
-                else                fResult ->  SetBinError     ( iBin, jBin, hTarget_1 ->  GetBinError     ( iBin, jBin ) + hTarget_2 ->  GetBinError     ( iBin, jBin ) );
-                continue;
-            }
             for ( Int_t kBin = 1; kBin <= fResult->GetNbinsZ(); kBin++ ) {
-                if ( TSquareSum )   fResult ->  SetBinError     ( iBin, jBin, kBin, SquareSum( { hTarget_1 ->  GetBinError     ( iBin, jBin, kBin ), hTarget_2 ->  GetBinError     ( iBin, jBin, kBin ) } ) );
-                else                fResult ->  SetBinError     ( iBin, jBin, kBin, hTarget_1 ->  GetBinError     ( iBin, jBin, kBin ) + hTarget_2 ->  GetBinError     ( iBin, jBin, kBin ) );
-                
+                auto    kGlobalBin  =   fResult->GetBin( iBin, jBin, kBin );
+                if ( TSquareSum )   fResult ->  SetBinError     ( kGlobalBin, SquareSum( { hTarget_1 ->  GetBinError     ( kGlobalBin ), hTarget_2 ->  GetBinError     ( kGlobalBin ) } ) );
+                else                fResult ->  SetBinError     ( kGlobalBin, hTarget_1 ->  GetBinError     ( kGlobalBin ) + hTarget_2 ->  GetBinError     ( kGlobalBin ) );
             }
         }
     }
-    return  fResult;
+    return fResult;
 }
+//
+// TODO: Generalise w/ TH_Type_3 as return
+template< Bool_t TSquareSum = true, typename TH_Type_1, typename TH_Type_2 = TH_Type_1 >
+TH_Type_2*
+uRandomisePoints
+( TH_Type_1* hTarget ) {
+    auto    nDimension  =   uGetTHDimension( hTarget );
+    TH_Type_2*  fResult =   (TH_Type_2*)(hTarget->Clone());
+    if ( nDimension < 0 )   return  fResult;
+    for ( Int_t iBin = 1; iBin <= fResult->GetNbinsX(); iBin++ ) {
+        for ( Int_t jBin = 1; jBin <= fResult->GetNbinsY(); jBin++ ) {
+            for ( Int_t kBin = 1; kBin <= fResult->GetNbinsZ(); kBin++ ) {
+                auto    kGlobalBin  =   fResult->GetBin( iBin, jBin, kBin );
+                auto    kBinContent =   fResult->GetBinContent( kGlobalBin );
+                auto    kBinError   =   fResult->GetBinContent( kGlobalBin );
+                auto    kNewBinCont =   uRandomGen -> Gaus( kBinContent, kBinError );
+                fResult ->  SetBinContent( kGlobalBin, kNewBinCont );
+            }
+        }
+    }
+    return fResult;
+}
+    
+/*
+ template < class Tclass >
+ Tclass*                 uRandomizePoints            ( Tclass* gStatic, Tclass* gMoveable )    {
+     Tclass* fResult =   (Tclass*)(gStatic->Clone());
+     for ( Int_t iBin = 0; iBin < gStatic->GetNbinsX(); iBin++ ) {
+         auto    fBinContent =   gStatic->GetBinContent(iBin+1);
+         auto    fMoveError  =   gMoveable->GetBinError(iBin+1);
+         auto fTest = uRandomGen -> Gaus(fBinContent,fMoveError);
+         fResult->SetBinContent  ( iBin+1, fTest );
+         fResult->SetBinError    ( iBin+1, fMoveError );
+     }
+     return  fSumErrors(fResult,gMoveable);
+ }
+ */
 
 
 
