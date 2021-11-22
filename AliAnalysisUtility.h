@@ -9,6 +9,7 @@
 #include "AAU_Style.h"
 #include "AAU_Functions.h"
 #include "AAU_Histograms.h"
+#include "AAU_Resolution.h"
 //
 // C++
 #include <iostream>
