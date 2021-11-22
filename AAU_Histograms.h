@@ -26,7 +26,7 @@ uGetTHDimension
  ( THXTarget_Type*   fTarget ) {
     TObject* kTObj1DTestTarget  =   dynamic_cast< TObject* >( fTarget );
     TH1* kHist1DTestTarget  =   dynamic_cast< TH1* >( fTarget );
-    if ( !kHist1DTestTarget )   {
+    if ( !kHist1DTestTarget || !kTObj1DTestTarget )   {
         if ( !kHist1DTestTarget &&  kTObj1DTestTarget ) cout << "[ERROR] Target " << fTarget->GetName() << " is not a histogram!" << endl;
         if ( !kHist1DTestTarget && !kTObj1DTestTarget ) cout << "[ERROR] Target is not a TObject!" << endl;
         return -1;
@@ -36,6 +36,7 @@ uGetTHDimension
     if ( !kHist2DTestTarget && !kHist3DTestTarget ) return 1;
     if (  kHist2DTestTarget && !kHist3DTestTarget ) return 2;
     if ( !kHist2DTestTarget &&  kHist3DTestTarget ) return 3;
+    return -1;
 }
 //
 template < class THXTarget_Type, class THXSource_Type >
@@ -45,12 +46,10 @@ uGetPairDimension
     auto kTarget_1_Dim  =   uGetTHDimension(fTarget_1);
     auto kTarget_2_Dim  =   uGetTHDimension(fTarget_2);
     if ( kTarget_1_Dim == kTarget_2_Dim )   return  kTarget_1_Dim;
-    else    {
-        cout << "[ERROR] Dimension of histograms are not coherent!" << endl;
-        cout << "[INFO] Dimension of Target 1 is " << kTarget_1_Dim << endl;
-        cout << "[INFO] Dimension of Target 2 is " << kTarget_2_Dim << endl;
-        return -1;
-    }
+    cout << "[ERROR] Dimension of histograms are not coherent!" << endl;
+    cout << "[INFO] Dimension of Target 1 is " << kTarget_1_Dim << endl;
+    cout << "[INFO] Dimension of Target 2 is " << kTarget_2_Dim << endl;
+    return -1;
 }
 //
 //>>
