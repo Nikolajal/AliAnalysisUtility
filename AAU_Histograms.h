@@ -41,7 +41,7 @@ uGetTHDimension
 //
 template < class THXTarget_Type, class THXSource_Type >
 Int_t
-uGetPairDimension
+uGetTHPairDimension
 ( THXTarget_Type*   fTarget_1,    THXSource_Type*   fTarget_2 )  {
     auto kTarget_1_Dim  =   uGetTHDimension(fTarget_1);
     auto kTarget_2_Dim  =   uGetTHDimension(fTarget_2);
