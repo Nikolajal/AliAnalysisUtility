@@ -23,6 +23,14 @@ uCalculateResolution
     std::vector<TH1Template*>   fResult;
     for ( Int_t iTer = 0; iTer < 5; iTer++ )    {
         auto    hCurrent_Resolution =   (TH1Template*)(hTemplate->Clone());
+        switch ( TEvalMethod )  {
+            default:
+                hCurrent_Resolution->SetName(Form("hRes_RMS_%i",iTer+1));
+                break;
+            case 1:
+                hCurrent_Resolution->SetName(Form("hRes_GAU_%i",iTer+1));
+                break;
+        }
         fResult.push_back( hCurrent_Resolution );
     }
     auto iHist = 1;
