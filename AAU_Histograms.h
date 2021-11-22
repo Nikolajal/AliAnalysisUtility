@@ -53,6 +53,17 @@ uGetTHPairDimension
     return -1;
 }
 //
+template < class THXTarget_Type, class THXSource_Type >
+Bool_t
+uIsTHPairConsistent
+( THXTarget_Type*   fTarget_1,    THXSource_Type*   fTarget_2 )  {
+    if ( uGetTHPairDimension() < 0 ) return false;
+    if ( fTarget_1->GetXaxis()->GetXbins() != fTarget_2->GetXaxis()->GetXbins() ) return false;
+    if ( fTarget_1->GetYaxis()->GetXbins() != fTarget_2->GetYaxis()->GetXbins() ) return false;
+    if ( fTarget_1->GetZaxis()->GetXbins() != fTarget_2->GetZaxis()->GetXbins() ) return false;
+    return true;
+}
+//
 //>>
 //>>    FUNCTIONS TO BUILD HISTOGRAMS
 //>>
@@ -236,19 +247,39 @@ uScale
         }
     }
 }
-
+//
 /*
-
-TH1F                   *fScaleWithError             ( TH1F* gBasic, Double_t fScale, Double_t fScaleError = 0. )    {
-    TH1F  *fResult =   new TH1F(*gBasic);
+template< Bool_t TSquareSum = true, typename TH_Type_1, typename TH_Type_2, typename TH_Type_3 = TH_Type_1 >
+TH_Type_3*
+uSumErrors
+( TH_Type_1* hTarget_1, TH_Type_2* hTarget_2 ) {
+    auto    nDimension  =   uGetTHPairDimension( hTarget_1, hTarget_2 );
+    TH_Type_3*  fResult;
+    if ( nDimension < 0 )   return new TH_Type_3();
+    hName   =   Form();
+    hTitle  =   Form();
+    if ( nDimension == 1 )   fResult =   new TH_Type_3( hName, hTitle,  );
     for ( Int_t iBin = 1; iBin <= fResult->GetNbinsX(); iBin++ ) {
-        fResult->SetBinContent( iBin, gBasic->GetBinContent(iBin)/fScale );
-        fResult->SetBinError( iBin, (gBasic->GetBinContent(iBin)/fScale)*SquareSum( { gBasic->GetBinError( iBin )/gBasic->GetBinContent(iBin), fScaleError/fScale } ) );
+        if ( nDimension == 1 )  {
+            fResult ->  SetBinContent   ( iBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin ) );
+            if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, fScaleError * hTarget ->  GetBinError     ( iBin ) );
+            continue;
+        }
+        for ( Int_t jBin = 1; jBin <= fResult->GetNbinsY(); jBin++ ) {
+            if ( nDimension == 2 )  {
+                fResult ->  SetBinContent   ( iBin, jBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin, jBin ) );
+                if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, jBin, fScaleError * hTarget ->  GetBinError     ( iBin, jBin ) );
+                continue;
+            }
+            for ( Int_t kBin = 1; kBin <= fResult->GetNbinsZ(); kBin++ ) {
+                fResult ->  SetBinContent   ( iBin, jBin, kBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin, jBin, kBin ) );
+                if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, jBin, kBin, fScaleError * hTarget ->  GetBinError     ( iBin, jBin, kBin ) );
+                
+            }
+        }
     }
-    return  fResult;
 }
-
-*/
+ */
 
 
 
@@ -484,6 +515,7 @@ Tclass                   *fSumErrors                  ( Tclass* gBasic, Tclass* 
 //
 //_____________________________________________________________________________
 //
+
 TGraphAsymmErrors      *fScaleWithError             ( TGraphAsymmErrors* gBasic, Double_t fScale, Double_t fScaleErrHigh = 0., Double_t fScaleErrLow = 0. )    {
     TGraphAsymmErrors  *fResult =   new TGraphAsymmErrors(*gBasic);
     for ( Int_t iFit = 0; iFit < fResult->GetN(); iFit++ ) {
