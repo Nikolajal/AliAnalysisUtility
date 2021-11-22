@@ -53,14 +53,23 @@ uGetTHPairDimension
     return -1;
 }
 //
+// TODO: Better implementation required (same max/min/nbin but different edges )
 template < class THXTarget_Type, class THXSource_Type >
 Bool_t
 uIsTHPairConsistent
 ( THXTarget_Type*   fTarget_1,    THXSource_Type*   fTarget_2 )  {
-    if ( uGetTHPairDimension() < 0 ) return false;
-    if ( fTarget_1->GetXaxis()->GetXbins() != fTarget_2->GetXaxis()->GetXbins() ) return false;
-    if ( fTarget_1->GetYaxis()->GetXbins() != fTarget_2->GetYaxis()->GetXbins() ) return false;
-    if ( fTarget_1->GetZaxis()->GetXbins() != fTarget_2->GetZaxis()->GetXbins() ) return false;
+    auto    nDimension  = uGetTHPairDimension( fTarget_1, fTarget_2 );
+    if ( nDimension < 0 ) return false;
+    if ( fTarget_1->GetNbinsX() != fTarget_2->GetNbinsX() ) return false;
+    if ( fTarget_1->GetNbinsY() != fTarget_2->GetNbinsY() ) return false;
+    if ( fTarget_1->GetNbinsZ() != fTarget_2->GetNbinsZ() ) return false;
+    if ( fTarget_1->GetXaxis()->GetXmax()() != fTarget_2->GetXaxis()->GetXmax()() ) return false;
+    if ( fTarget_1->GetYaxis()->GetXmax()() != fTarget_2->GetYaxis()->GetXmax()() ) return false;
+    if ( fTarget_1->GetZaxis()->GetXmax()() != fTarget_2->GetZaxis()->GetXmax()() ) return false;
+    if ( fTarget_1->GetXaxis()->GetXmin()() != fTarget_2->GetXaxis()->GetXmin()() ) return false;
+    if ( fTarget_1->GetYaxis()->GetXmin()() != fTarget_2->GetYaxis()->GetXmin()() ) return false;
+    if ( fTarget_1->GetZaxis()->GetXmin()() != fTarget_2->GetZaxis()->GetXmin()() ) return false;
+    // TODO: Check bin edges
     return true;
 }
 //
@@ -248,38 +257,35 @@ uScale
     }
 }
 //
-/*
+// TODO: Generalise w/ TH_Type_3 as return
 template< Bool_t TSquareSum = true, typename TH_Type_1, typename TH_Type_2, typename TH_Type_3 = TH_Type_1 >
 TH_Type_3*
 uSumErrors
 ( TH_Type_1* hTarget_1, TH_Type_2* hTarget_2 ) {
     auto    nDimension  =   uGetTHPairDimension( hTarget_1, hTarget_2 );
-    TH_Type_3*  fResult;
-    if ( nDimension < 0 )   return new TH_Type_3();
-    hName   =   Form();
-    hTitle  =   Form();
-    if ( nDimension == 1 )   fResult =   new TH_Type_3( hName, hTitle,  );
+    TH_Type_3*  fResult =   (TH_Type_3*)(hTarget_1->Clone());
+    if ( nDimension < 0 )   return  fResult;
     for ( Int_t iBin = 1; iBin <= fResult->GetNbinsX(); iBin++ ) {
         if ( nDimension == 1 )  {
-            fResult ->  SetBinContent   ( iBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin ) );
-            if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, fScaleError * hTarget ->  GetBinError     ( iBin ) );
+            if ( TSquareSum )   fResult ->  SetBinError     ( iBin, SquareSum( { hTarget_1 ->  GetBinError     ( iBin ), hTarget_2 ->  GetBinError     ( iBin ) } ) );
+            else                fResult ->  SetBinError     ( iBin, hTarget_1 ->  GetBinError     ( iBin ) + hTarget_2 ->  GetBinError     ( iBin ) );
             continue;
         }
         for ( Int_t jBin = 1; jBin <= fResult->GetNbinsY(); jBin++ ) {
             if ( nDimension == 2 )  {
-                fResult ->  SetBinContent   ( iBin, jBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin, jBin ) );
-                if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, jBin, fScaleError * hTarget ->  GetBinError     ( iBin, jBin ) );
+                if ( TSquareSum )   fResult ->  SetBinError     ( iBin, jBin, SquareSum( { hTarget_1 ->  GetBinError     ( iBin, jBin ), hTarget_2 ->  GetBinError     ( iBin, jBin ) } ) );
+                else                fResult ->  SetBinError     ( iBin, jBin, hTarget_1 ->  GetBinError     ( iBin, jBin ) + hTarget_2 ->  GetBinError     ( iBin, jBin ) );
                 continue;
             }
             for ( Int_t kBin = 1; kBin <= fResult->GetNbinsZ(); kBin++ ) {
-                fResult ->  SetBinContent   ( iBin, jBin, kBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin, jBin, kBin ) );
-                if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, jBin, kBin, fScaleError * hTarget ->  GetBinError     ( iBin, jBin, kBin ) );
+                if ( TSquareSum )   fResult ->  SetBinError     ( iBin, jBin, kBin, SquareSum( { hTarget_1 ->  GetBinError     ( iBin, jBin, kBin ), hTarget_2 ->  GetBinError     ( iBin, jBin, kBin ) } ) );
+                else                fResult ->  SetBinError     ( iBin, jBin, kBin, hTarget_1 ->  GetBinError     ( iBin, jBin, kBin ) + hTarget_2 ->  GetBinError     ( iBin, jBin, kBin ) );
                 
             }
         }
     }
+    return  fResult;
 }
- */
 
 
 
