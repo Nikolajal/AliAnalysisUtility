@@ -209,6 +209,47 @@ uAbsolute
     uOffset( hTarget, 0, kTRUE );
 }
 //
+template< typename TH_Type, typename TInput1, typename TInput2, typename TInput3, typename = typename std::enable_if<std::is_arithmetic<TInput1>::value, TInput1>::type, typename = typename std::enable_if<std::is_arithmetic<TInput2>::value, TInput2>::type, typename = typename std::enable_if<std::is_arithmetic<TInput3>::value, TInput3>::type >
+TH_Type*
+uScale
+ ( TH_Type* hTarget, TInput1 fScaleFactor, TInput2 fScaleError = -1. )  {
+    auto    nDimension  =   uGetTHDimension( hTarget );
+    auto    fResult     =   (TH_Type*)(hTarget->Clone());
+    if ( nDimension < 0 ) return fResult;
+    for ( Int_t iBin = 1; iBin <= fResult->GetNbinsX(); iBin++ ) {
+        if ( nDimension == 1 )  {
+            fResult ->  SetBinContent   ( iBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin ) );
+            if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, fScaleError * hTarget ->  GetBinError     ( iBin ) );
+            continue;
+        }
+        for ( Int_t jBin = 1; jBin <= fResult->GetNbinsY(); jBin++ ) {
+            if ( nDimension == 2 )  {
+                fResult ->  SetBinContent   ( iBin, jBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin, jBin ) );
+                if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, jBin, fScaleError * hTarget ->  GetBinError     ( iBin, jBin ) );
+                continue;
+            }
+            for ( Int_t kBin = 1; kBin <= fResult->GetNbinsZ(); kBin++ ) {
+                fResult ->  SetBinContent   ( iBin, jBin, kBin, fScaleFactor * hTarget ->  GetBinContent   ( iBin, jBin, kBin ) );
+                if ( fScaleError >= 0 ) fResult ->  SetBinError     ( iBin, jBin, kBin, fScaleError * hTarget ->  GetBinError     ( iBin, jBin, kBin ) );
+                
+            }
+        }
+    }
+}
+
+/*
+
+TH1F                   *fScaleWithError             ( TH1F* gBasic, Double_t fScale, Double_t fScaleError = 0. )    {
+    TH1F  *fResult =   new TH1F(*gBasic);
+    for ( Int_t iBin = 1; iBin <= fResult->GetNbinsX(); iBin++ ) {
+        fResult->SetBinContent( iBin, gBasic->GetBinContent(iBin)/fScale );
+        fResult->SetBinError( iBin, (gBasic->GetBinContent(iBin)/fScale)*SquareSum( { gBasic->GetBinError( iBin )/gBasic->GetBinContent(iBin), fScaleError/fScale } ) );
+    }
+    return  fResult;
+}
+
+*/
+
 
 
 
