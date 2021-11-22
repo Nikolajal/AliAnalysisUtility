@@ -20,43 +20,35 @@ Int_t       iBuilderTH1_TypeCounter =   0;
 //>>    GENERAL UTILITY FUNCTIONS
 //>>
 //
-template < class THXTarget_Type, class THXSource_Type >
+template < class THXTarget_Type >
 Int_t
-uGetPairDimension
-( THXTarget_Type*   fTarget,    THXSource_Type*   fSource )  {
-    //  Check is a histogram
+uGetTHDimension
+ ( THXTarget_Type*   fTarget ) {
+    TH1* kTObj1DTestTarget  =   dynamic_cast< TObject* >( fTarget );
     TH1* kHist1DTestTarget  =   dynamic_cast< TH1* >( fTarget );
-    TH1* kHist1DTestSource  =   dynamic_cast< TH1* >( fSource );
-    if ( !kHist1DTestTarget || !kHist1DTestSource )   {
-        if ( !kHist1DTestTarget )   cout << "[ERROR] Target is not a histogram!" << endl;
-        if ( !kHist1DTestSource )   cout << "[ERROR] Source is not a histogram!" << endl;
+    if ( !kHist1DTestTarget )   {
+        if ( !kHist1DTestTarget &&  kTObj1DTestTarget ) cout << "[ERROR] Target " << fTarget->GetName() << " is not a histogram!" << endl;
+        if ( !kHist1DTestTarget && !kTObj1DTestTarget ) cout << "[ERROR] Target is not a TObject!" << endl;
         return -1;
     }
     TH2* kHist2DTestTarget  =   dynamic_cast< TH2* >( fTarget );
-    TH2* kHist2DTestSource  =   dynamic_cast< TH2* >( fSource );
     TH3* kHist3DTestTarget  =   dynamic_cast< TH3* >( fTarget );
-    TH3* kHist3DTestSource  =   dynamic_cast< TH3* >( fSource );
-    //
-    auto kTargetIs1D        =   false;
-    auto kSourceIs1D        =   false;
-    auto kTargetIs2D        =   false;
-    auto kSourceIs2D        =   false;
-    auto kTargetIs3D        =   false;
-    auto kSourceIs3D        =   false;
-    //
-    if ( !kHist2DTestTarget && !kHist3DTestTarget ) kTargetIs1D = true;
-    if ( !kHist2DTestSource && !kHist3DTestSource ) kSourceIs1D = true;
-    if (  kHist2DTestTarget && !kHist3DTestTarget ) kTargetIs2D = true;
-    if (  kHist2DTestSource && !kHist3DTestSource ) kSourceIs2D = true;
-    if ( !kHist2DTestTarget &&  kHist3DTestTarget ) kTargetIs3D = true;
-    if ( !kHist2DTestSource &&  kHist3DTestSource ) kSourceIs3D = true;
-    //
-    if      ( kTargetIs1D && kSourceIs1D ) return 1;
-    else if ( kTargetIs2D && kSourceIs2D ) return 2;
-    else if ( kTargetIs3D && kSourceIs3D ) return 3;
+    if ( !kHist2DTestTarget && !kHist3DTestTarget ) return 1;
+    if (  kHist2DTestTarget && !kHist3DTestTarget ) return 2;
+    if ( !kHist2DTestTarget &&  kHist3DTestTarget ) return 3;
+}
+//
+template < class THXTarget_Type, class THXSource_Type >
+Int_t
+uGetPairDimension
+( THXTarget_Type*   fTarget_1,    THXSource_Type*   fTarget_2 )  {
+    auto kTarget_1_Dim  =   uGetTHDimension(fTarget_1);
+    auto kTarget_2_Dim  =   uGetTHDimension(fTarget_2);
+    if ( kTarget_1_Dim == kTarget_2_Dim )   return  kTarget_1_Dim;
     else    {
-        // !TODO: Signal the dimension of targt source
         cout << "[ERROR] Dimension of histograms are not coherent!" << endl;
+        cout << "[INFO] Dimension of Target 1 is " << kTarget_1_Dim << endl;
+        cout << "[INFO] Dimension of Target 2 is " << kTarget_2_Dim << endl;
         return -1;
     }
 }
