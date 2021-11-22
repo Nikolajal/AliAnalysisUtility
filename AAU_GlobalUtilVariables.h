@@ -1,3 +1,11 @@
+//
+//  Part of the AliAnalysisUtility package
+//
+//  Global Variables
+//
+//  Author              Nicola Rubini
+//  Created             22/11/2021
+//  Last modified       22/11/2021
 #ifndef ALIANALYSISUTILITY_GLOBALUTILVARIABLES_H
 #define ALIANALYSISUTILITY_GLOBALUTILVARIABLES_H
 //

@@ -1,5 +1,11 @@
-// Global Values and constants file
 //
+//  Part of the AliAnalysisUtility package
+//
+//  General File to be included in the individual analysis
+//
+//  Author              Nicola Rubini
+//  Created             22/11/2021
+//  Last modified       22/11/2021
 #ifndef ALIANALYSISUTILITY_H
 #define ALIANALYSISUTILITY_H
 //
@@ -20,8 +26,6 @@
 //
 using namespace std;
 using namespace RooFit;
-//
-//
 //
 //------------------------------//
 //    FIT FUNCTIONS UTILITIES   //

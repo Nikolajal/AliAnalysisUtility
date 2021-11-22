@@ -289,28 +289,71 @@ uRandomisePoints
     }
     return fResult;
 }
-    
-/*
- template < class Tclass >
- Tclass*                 uRandomizePoints            ( Tclass* gStatic, Tclass* gMoveable )    {
-     Tclass* fResult =   (Tclass*)(gStatic->Clone());
-     for ( Int_t iBin = 0; iBin < gStatic->GetNbinsX(); iBin++ ) {
-         auto    fBinContent =   gStatic->GetBinContent(iBin+1);
-         auto    fMoveError  =   gMoveable->GetBinError(iBin+1);
-         auto fTest = uRandomGen -> Gaus(fBinContent,fMoveError);
-         fResult->SetBinContent  ( iBin+1, fTest );
-         fResult->SetBinError    ( iBin+1, fMoveError );
-     }
-     return  fSumErrors(fResult,gMoveable);
- }
- */
+//
+//>>    >>  WRITE/READ FILE FUNCTIONS
+//
+// TODO: Generalise for N cycles, for labels, for any TH1* if input std::vector& you can desume the TH1 type
+template< typename TH_Type = TH1F >
+std::vector<TH_Type*>
+uLoadHistograms
+( TFile* kDataFile, TString kHistogramName, TString kNewName = "" ) {
+    std::vector<TH_Type*>  fResult;
+    auto iTer = 0;
+    while ( true ) {
+        if ( !kDataFile->Get(Form(kHistogramName,iTer)) ) break;
+        fResult.push_back( new TH_Type ( *((TH_Type*)(kDataFile->Get(Form(kHistogramName,iTer)))) ) );
+        if ( !kNewName.IsNull() )    fResult.at(iTer)->SetName(Form(kNewName,iTer));
+        iTer++;
+    }
+    if ( fResult.size() == 0 ) cout << "[ERROR] No Histogram match found for " << kHistogramName.Data() << endl;
+    return fResult;
+}
+//
+template< typename TH_Type, typename TInput1, typename = typename std::enable_if<std::is_arithmetic<TInput1>::value > >
+void
+uAddSumHistogram
+ ( std::vector<TH_Type*> &hTarget, TString kNewName = "", std::vector<TInput1> kWeights = {} ) {
+    // TODO: null vec, warning weitghs less than histos
+    //if ( size == 0 ) warnign erorr
+    auto    iTer = 0;
+    auto    hResult =   (TH_Type*)(hTarget.at(0)->Clone());
+    hResult ->  Reset();
+    for ( auto kHisto : hTarget )    {
+        if ( kWeights.size() < iTer+1 ) hResult -> Add( kHisto );
+        else                            hResult -> Add( kHisto, kWeights.at(iTer) );
+        iTer++;
+    }
+    if ( kNewName.IsNull() )    hResult ->  SetName( "SumHisto_from_uAddSumHistogram" );
+    else                        hResult ->  SetName( kNewName );
+    hTarget                     .insert( hTarget.begin(), hResult );
+}
+//
+template< typename TH_Type, typename TInput1, typename = typename std::enable_if<std::is_arithmetic<TInput1>::value > >
+void
+uAddSumHistogram
+ ( std::vector<std::vector<TH_Type*>> &hTarget, TString kNewName = "", std::vector<TInput1> kWeights = {} ) {
+    std::vector<TH_Type*>  fResult;
+    for ( Int_t jTer = 0; jTer < hTarget.at(0).size(); jTer++ )   {
+        std::vector<TH_Type*> kUtility;
+        for ( Int_t iTer = 0; iTer < hTarget.size(); iTer++ )   {
+            kUtility.push_back( hTarget.at(iTer).at(jTer) );
+        }
+        uAddSumHistogram( kUtility, Form( kNewName, jTer), kWeights );
+        fResult.push_back( kUtility.at(0) );
+    }
+    hTarget.push_back( fResult );
+}
+//
+//>>    >>  SPECIFIC PLOTS FUNCTIONS
+//
+
 
 
 
 
 //>>
 //>>    --  --  --  TODO: Clean
-//>>    LEGACY, TO BE CHECKED AGAIN
+//>>    LEGACY, TO BE CHECKED AGAIN ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //>>
 //
 //  --  --  --  RETRO COMPATIBILITY, TO BE CLEANED
@@ -816,73 +859,7 @@ TCanvas                *uPlotReferenceValue         ( TH1*  hMeasured,    Float_
     return uPlotReferenceValue( fTH1_to_TGAsymmErrors(hMeasured), fReference, fRefError, fLabel );
 }
 //
-
-
-// TODO: Generalise for N cycles, for labels, for any TH1* if input std::vector& you can desume the TH1 type
-std::vector<TH1F*>
-uLoadHistograms
-( TFile* kDataFile, TString kHistogramName, TString kNewName = "" ) {
-    std::vector<TH1F*>  fResult;
-    auto iTer = 0;
-    while ( true ) {
-        if ( !kDataFile->Get(Form(kHistogramName,iTer)) ) break;
-        fResult.push_back( new TH1F ( *((TH1F*)(kDataFile->Get(Form(kHistogramName,iTer)))) ) );
-        if ( !kNewName.IsNull() )    fResult.at(iTer)->SetName(Form(kNewName,iTer));
-        iTer++;
-    }
-    if ( fResult.size() == 0 ) cout << "[ERROR] No Histogram match found for " << kHistogramName.Data() << endl;
-    return fResult;
-}
-
-void
-uAddSumHistogram
- ( std::vector<TH1F*> &hTarget, TString kNewName = "", std::vector<Float_t> kWeights = {} ) {
-    // TODO: null vec, warning weitghs less than histos
-    //if ( size == 0 ) warnign erorr
-    auto    iTer = 0;
-    auto    hResult =   (TH1F*)(hTarget.at(0)->Clone());
-    hResult ->  Reset();
-    for ( auto kHisto : hTarget )    {
-        if ( kWeights.size() < iTer+1 ) hResult -> Add( kHisto );
-        else                            hResult -> Add( kHisto, kWeights.at(iTer) );
-        iTer++;
-    }
-    if ( kNewName.IsNull() )    hResult ->  SetName( "SumHisto_from_uAddSumHistogram" );
-    else                        hResult ->  SetName( kNewName );
-    hTarget                     .insert( hTarget.begin(), hResult );
-}
-void
-uAddSumHistogram
- ( std::vector<std::vector<TH1F*>> &hTarget, TString kNewName = "", std::vector<Float_t> kWeights = {} ) {
-    std::vector<TH1F*>  fResult;
-    for ( Int_t jTer = 0; jTer < hTarget.at(0).size(); jTer++ )   {
-        std::vector<TH1F*> kUtility;
-        for ( Int_t iTer = 0; iTer < hTarget.size(); iTer++ )   {
-            kUtility.push_back( hTarget.at(iTer).at(jTer) );
-        }
-        uAddSumHistogram( kUtility, Form( kNewName, jTer), kWeights );
-        fResult.push_back( kUtility.at(0) );
-    }
-    hTarget.push_back( fResult );
-}
-void
-uAddSumHistogram
- ( std::vector<TH1D*> &hTarget, TString kNewName = "", std::vector<Float_t> kWeights = {} ) {
-    // TODO: null vec, warning weitghs less than histos
-    //if ( size == 0 ) warnign erorr
-    auto    iTer = 0;
-    auto    hResult =   (TH1D*)(hTarget.at(0)->Clone());
-    hResult ->  Reset();
-    for ( auto kHisto : hTarget )    {
-        if ( kWeights.size() < iTer+1 ) hResult -> Add( kHisto );
-        else                            hResult -> Add( kHisto, kWeights.at(iTer) );
-        iTer++;
-    }
-    if ( kNewName.IsNull() )    hResult ->  SetName( "SumHisto_from_uAddSumHistogram" );
-    else                        hResult ->  SetName( kNewName );
-    hTarget                     .insert( hTarget.begin(), hResult );
-}
-
+//
 TCanvas*
 uPlotEfficiencies
  ( std::vector<TH1F*> hTarget, std::vector<TString> fLegend = {} )  {
@@ -912,7 +889,7 @@ uPlotEfficiencies
     //
     return cDrawEff;
 }
-
+//
 std::vector<TH1F*>
 uMakeRatio
  ( std::vector<TH1F*> hTargets )   {
@@ -924,6 +901,4 @@ uMakeRatio
     }
     return fResult;
 }
-
-
 #endif
