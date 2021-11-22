@@ -17,13 +17,6 @@
 #include "AAU_Histograms.h"
 #include "AAU_Resolution.h"
 //
-// C++
-#include <iostream>
-#include <cmath>
-#include <iomanip>
-#include <algorithm>
-#include <chrono>
-//
 using namespace std;
 using namespace RooFit;
 //
