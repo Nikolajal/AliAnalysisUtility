@@ -58,6 +58,38 @@ void SetStyle(Bool_t graypalette = false) {
 //>>    STYLE FUNCTIONS
 //
 Int_t
+uGetRainbowColor
+ ( Int_t iTerator, Bool_t iSparse = false )    {
+    if  ( iSparse ) iTerator    *=  2;
+    return kRainbowColor[iTerator%12];
+}                                               //  Relates to global variable kRainbowColor
+Int_t
+uGetColor
+ ( Int_t iTerator, Bool_t iSparse = false )    {
+    if  ( iSparse ) iTerator    *=  2;
+    return kColors[iTerator%8];
+}                                               //  Relates to global variable kRainbowColor
+Int_t
+uGetMarker
+ ( Int_t iTerator, Int_t OpenOnly = -1 )    {
+    if  ( OpenOnly == 0 )   {
+        return kMarkers[iTerator%5];
+    } else if  ( OpenOnly == 1 )   {
+        iTerator    +=  5;
+        return kMarkers[iTerator%5];
+    } else   {
+        return kMarkers[iTerator%10];
+    }
+}                                               //  Relates to global variable kRainbowColor
+Int_t
+uGetFillColor
+ ( Int_t iTerator, Bool_t iSparse = false )    {
+    if  ( iSparse ) iTerator    *=  2;
+    return kFillColors[iTerator%8];
+}
+
+//------------------------LEGACY
+Int_t
 fGetRainbowColor
  ( Int_t iTerator, Bool_t iSparse = false )    {
     if  ( iSparse ) iTerator    *=  2;
@@ -71,7 +103,7 @@ fGetColor
 }                                               //  Relates to global variable kRainbowColor
 Int_t
 fGetMarker
- ( Int_t iTerator, Int_t OpenOnly = -1 )    {
+( Int_t iTerator, Int_t OpenOnly = -1 )    {
     if  ( OpenOnly == 0 )   {
         return kMarkers[iTerator%5];
     } else if  ( OpenOnly == 1 )   {
@@ -87,4 +119,5 @@ fGetFillColor
     if  ( iSparse ) iTerator    *=  2;
     return kFillColors[iTerator%8];
 }
+
 #endif

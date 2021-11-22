@@ -179,6 +179,41 @@ uGetUniformBinningArray
     return  fResult;
 }
 //
+template< typename TInput1, typename TInput2, typename TInput3, typename = typename std::enable_if<std::is_arithmetic<TInput1>::value, TInput1>::type, typename = typename std::enable_if<std::is_arithmetic<TInput2>::value, TInput2>::type, typename = typename std::enable_if<std::is_arithmetic<TInput3>::value, TInput3>::type >
+std::pair<Int_t,Float_t*>
+uUniformBinning
+( TInput1 fBinWidth, TInput2 fLowEdge, TInput3 fHighEdge )  {
+    Int_t       nBinNumber  =   ( fHighEdge - fLowEdge ) / fBinWidth;
+    if ( ( ( ( fHighEdge - fLowEdge ) / fBinWidth ) - nBinNumber ) >= fBinWidth ) nBinNumber++;
+    Float_t*    fResult     =   new Float_t [ nBinNumber+1 ];
+    for ( Int_t iBin = 0; iBin <= nBinNumber; iBin++ )  fResult[iBin]   =   fLowEdge + iBin * fBinWidth;
+    if ( fResult[ nBinNumber ] != fHighEdge )  cout << "[WARNING] [uUniformBinning] Changed High Edge from " << fHighEdge << " to " << fResult[ nBinNumber ] << endl;
+    return  std::pair<Int_t,Float_t*> ( nBinNumber, fResult );
+}
+//
+//>>    >>  BIN CONTENT FUNCTIONS
+//
+template< typename TH1_Type >
+void
+uOffset
+( TH1_Type* hTarget, Double_t kOffset, Bool_t kAbsolute = false ){
+    for ( Int_t iBin = 1; iBin <= hTarget->GetNbinsX(); iBin++ ) {
+        auto fYValue = hTarget->GetBinContent(iBin);
+        if ( kAbsolute )    hTarget->SetBinContent(iBin, fabs( fYValue+kOffset ) );
+        else                hTarget->SetBinContent(iBin, fYValue+kOffset );
+    }
+}
+//
+template< typename TH1_Type >
+void
+uAbsolute
+( TH1_Type* hTarget ){
+    uOffset( hTarget, 0, kTRUE );
+}
+//
+
+
+
 //>>
 //>>    --  --  --  TODO: Clean
 //>>    LEGACY, TO BE CHECKED AGAIN
@@ -220,15 +255,6 @@ void                    fSetUniformBinning          ( Tclass *fArrBin, Tclass fM
     }
 }
 ////_____________________________________________________________________________
-void
-uOffset
-( TH1* hTarget, Double_t kOffset, Bool_t kAbsolute = false ){
-    for ( Int_t iBin = 1; iBin <= hTarget->GetNbinsX(); iBin++ ) {
-        auto fYValue = hTarget->GetBinContent(iBin);
-        if ( kAbsolute )    hTarget->SetBinContent(iBin, fabs( fYValue+kOffset ) );
-        else                hTarget->SetBinContent(iBin, fYValue+kOffset );
-    }
-}
 //
 void
 uSetHisto
@@ -695,4 +721,114 @@ TCanvas                *uPlotReferenceValue         ( TH1*  hMeasured,    Float_
     return uPlotReferenceValue( fTH1_to_TGAsymmErrors(hMeasured), fReference, fRefError, fLabel );
 }
 //
+
+
+// TODO: Generalise for N cycles, for labels, for any TH1* if input std::vector& you can desume the TH1 type
+std::vector<TH1F*>
+uLoadHistograms
+( TFile* kDataFile, TString kHistogramName, TString kNewName = "" ) {
+    std::vector<TH1F*>  fResult;
+    auto iTer = 0;
+    while ( true ) {
+        if ( !kDataFile->Get(Form(kHistogramName,iTer)) ) break;
+        fResult.push_back( new TH1F ( *((TH1F*)(kDataFile->Get(Form(kHistogramName,iTer)))) ) );
+        if ( !kNewName.IsNull() )    fResult.at(iTer)->SetName(Form(kNewName,iTer));
+        iTer++;
+    }
+    if ( fResult.size() == 0 ) cout << "[ERROR] No Histogram match found for " << kHistogramName.Data() << endl;
+    return fResult;
+}
+
+void
+uAddSumHistogram
+ ( std::vector<TH1F*> &hTarget, TString kNewName = "", std::vector<Float_t> kWeights = {} ) {
+    // TODO: null vec, warning weitghs less than histos
+    //if ( size == 0 ) warnign erorr
+    auto    iTer = 0;
+    auto    hResult =   (TH1F*)(hTarget.at(0)->Clone());
+    hResult ->  Reset();
+    for ( auto kHisto : hTarget )    {
+        if ( kWeights.size() < iTer+1 ) hResult -> Add( kHisto );
+        else                            hResult -> Add( kHisto, kWeights.at(iTer) );
+        iTer++;
+    }
+    if ( kNewName.IsNull() )    hResult ->  SetName( "SumHisto_from_uAddSumHistogram" );
+    else                        hResult ->  SetName( kNewName );
+    hTarget                     .insert( hTarget.begin(), hResult );
+}
+void
+uAddSumHistogram
+ ( std::vector<std::vector<TH1F*>> &hTarget, TString kNewName = "", std::vector<Float_t> kWeights = {} ) {
+    std::vector<TH1F*>  fResult;
+    for ( Int_t jTer = 0; jTer < hTarget.at(0).size(); jTer++ )   {
+        std::vector<TH1F*> kUtility;
+        for ( Int_t iTer = 0; iTer < hTarget.size(); iTer++ )   {
+            kUtility.push_back( hTarget.at(iTer).at(jTer) );
+        }
+        uAddSumHistogram( kUtility, Form( kNewName, jTer), kWeights );
+        fResult.push_back( kUtility.at(0) );
+    }
+    hTarget.push_back( fResult );
+}
+void
+uAddSumHistogram
+ ( std::vector<TH1D*> &hTarget, TString kNewName = "", std::vector<Float_t> kWeights = {} ) {
+    // TODO: null vec, warning weitghs less than histos
+    //if ( size == 0 ) warnign erorr
+    auto    iTer = 0;
+    auto    hResult =   (TH1D*)(hTarget.at(0)->Clone());
+    hResult ->  Reset();
+    for ( auto kHisto : hTarget )    {
+        if ( kWeights.size() < iTer+1 ) hResult -> Add( kHisto );
+        else                            hResult -> Add( kHisto, kWeights.at(iTer) );
+        iTer++;
+    }
+    if ( kNewName.IsNull() )    hResult ->  SetName( "SumHisto_from_uAddSumHistogram" );
+    else                        hResult ->  SetName( kNewName );
+    hTarget                     .insert( hTarget.begin(), hResult );
+}
+
+TCanvas*
+uPlotEfficiencies
+ ( std::vector<TH1F*> hTarget, std::vector<TString> fLegend = {} )  {
+    TCanvas        *cDrawEff    =   new TCanvas("","",1200,1200);
+    gStyle          ->  SetOptStat(0);
+    gPad            ->  SetLogx();
+    gPad            ->  SetGridy();
+    //
+    TLegend*        lEfficiencies   =   new TLegend(0.625,0.88,0.88,0.7);
+    lEfficiencies   ->  SetNColumns(2);
+    lEfficiencies   ->  SetFillColorAlpha(0.,0.);
+    lEfficiencies   ->  SetLineColorAlpha(0.,0.);
+    //
+    auto iTer = 0;
+    for ( auto k1D_Eff : hTarget )  {
+        uSetHisto( k1D_Eff, "EFF 1D" );
+        if ( iTer != 0 )    k1D_Eff ->  SetMarkerStyle ( uGetMarker(4) );
+        k1D_Eff ->  SetMarkerColor ( uGetColor(iTer) );
+        k1D_Eff ->  SetLineColor ( uGetColor(iTer) );
+        k1D_Eff ->  Draw( "SAME" );
+        if ( iTer+1 > fLegend.size() )          lEfficiencies->AddEntry( k1D_Eff, k1D_Eff->GetName(),   "EP" );
+        else if ( !fLegend.at(iTer).IsNull() )  lEfficiencies->AddEntry( k1D_Eff, fLegend.at(iTer),     "EP" );
+        else                                    lEfficiencies->AddEntry( k1D_Eff, k1D_Eff->GetName(),   "EP" );
+        iTer++;
+    }
+    lEfficiencies->Draw("SAME");
+    //
+    return cDrawEff;
+}
+
+std::vector<TH1F*>
+uMakeRatio
+ ( std::vector<TH1F*> hTargets )   {
+    std::vector<TH1F*> fResult;
+    for ( auto kHisto : hTargets )  {
+        auto    kNewHisto   =   (TH1F*)(kHisto->Clone());
+        kNewHisto->Divide(kHisto,hTargets.at(0));
+        fResult.push_back( kNewHisto );
+    }
+    return fResult;
+}
+
+
 #endif

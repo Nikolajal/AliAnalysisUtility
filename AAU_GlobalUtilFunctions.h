@@ -98,6 +98,7 @@ fBarlowCheck
 void
 fStartTimer
  ( TString fTimerName )    {
+    uBenchmark->Reset();
     uBenchmark->Start(fTimerName.Data());
     printf("[INFO] Starting %s \n", fTimerName.Data());
     fflush(stdout);

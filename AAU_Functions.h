@@ -294,7 +294,6 @@ Double_t                _Gauss                      ( Double_t * fVar, Double_t 
 TF1 *                   fGauss                      = new TF1 ("Gauss",_Gauss,-100.,100.,3);
 void                    fSetGauss                   ()  {
     fGauss              ->  SetParNames("Norm","Mean","Sigma");
-    
 }
 //
 //_____________________________________________________________________________
