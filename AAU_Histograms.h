@@ -1,5 +1,11 @@
 //
-//  Re-Include protection
+//  Part of the AliAnalysisUtility package
+//
+//  Utilities for Histogram handling
+//
+//  Author              Nicola Rubini
+//  Created             22/11/2021
+//  Last modified       22/11/2021
 #ifndef ALIANALYSISUTILITY_HISTOGRAMS_H
 #define ALIANALYSISUTILITY_HISTOGRAMS_H
 //
