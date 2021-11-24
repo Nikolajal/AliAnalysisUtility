@@ -13,13 +13,11 @@
 //  Global File w/ Constants and other functions
 #include "AliAnalysisUtility.h"
 //
-//>>    GLOBAL VARIABLES
+//  --- GLOBAL VARIABLES
 //
 Int_t       iBuilderTH1_TypeCounter =   0;
 //
-//>>
-//>>    GENERAL UTILITY FUNCTIONS
-//>>
+//  --- GENERAL UTILITY FUNCTIONS
 //
 template <  class THXTarget_Type >
 Int_t
@@ -75,10 +73,9 @@ uIsTHPairConsistent
     return true;
 }
 //
-//>>
-//>>    FUNCTIONS TO BUILD HISTOGRAMS
-//>>
+//  --- FUNCTIONS TO BUILD HISTOGRAMS
 //
+// TODO: Make Build TH2 and TH3 and THn
 template<   typename TH1_Type = TH1F,
             typename stdVec_Type,
             typename = typename std::enable_if<std::is_arithmetic<stdVec_Type>::value, stdVec_Type>::type >
@@ -124,11 +121,9 @@ uBuildTH3
     return  new TH1_Type;
 }
 //
-//>>
-//>>    FUNCTIONS TO MANIPULATE HISTOGRAMS
-//>>
+//  --- FUNCTIONS TO MANIPULATE HISTOGRAMS
 //
-//>>    >>  BINNING FUNCTIONS
+//  --- --- BINNING FUNCTIONS
 //
 template <  class TH1Target_Type,
             class TH1Source_Type >
@@ -227,7 +222,7 @@ uUniformBinning
     return  std::pair<Int_t,Float_t*> ( nBinNumber, fResult );
 }
 //
-//>>    >>  BIN CONTENT FUNCTIONS
+//  --- --- BIN CONTENT FUNCTIONS
 //
 template<   typename TH1_Type >
 void
@@ -319,7 +314,7 @@ uRandomisePoints
     return fResult;
 }
 //
-//>>    >>  WRITE/READ FILE FUNCTIONS
+//  --- --- WRITE/READ FILE FUNCTIONS
 //
 // TODO: Generalise for N cycles, for labels, for any TH1* if input std::vector& you can desume the TH1 type
 template<   Int_t TDimension = 0,
@@ -414,7 +409,7 @@ uAddSumHistogram
     hTarget.push_back( fResult );
 }
 //
-//>>    >>  SPECIFIC PLOTS FUNCTIONS
+//  --- --- SPECIFIC PLOTS FUNCTIONS
 //
 
 
