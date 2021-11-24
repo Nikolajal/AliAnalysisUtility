@@ -9,7 +9,12 @@
 #ifndef ALIANALYSISUTILITY_GLOBALUTILFUNCTIONS_H
 #define ALIANALYSISUTILITY_GLOBALUTILFUNCTIONS_H
 //
-//>>    GLOBAL FUNCTIONS
+//  --- Global Functions
+//
+//  --- --- Type definition helpers
+//
+template< Int_t TDimension, typename TContent_Type >    struct TNVector                         { typedef std::vector< typename TNVector< TDimension - 1, TContent_Type >::type > type; };
+template< typename TContent_Type >                      struct TNVector < 0, TContent_Type >    { typedef TContent_Type type; };
 //
 //---------------------------------------------------------------------------------------------------------------------------------------------------   Square Sum of Inputs
 //  !TODO: Name Change  -> +u...

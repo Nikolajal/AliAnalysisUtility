@@ -5,7 +5,7 @@
 //
 //  Author              Nicola Rubini
 //  Created             22/11/2021
-//  Last modified       22/11/2021
+//  Last modified       24/11/2021
 #ifndef ALIANALYSISUTILITY_HISTOGRAMS_H
 #define ALIANALYSISUTILITY_HISTOGRAMS_H
 //  TODO: Implement histogram check for all functions
@@ -21,7 +21,7 @@ Int_t       iBuilderTH1_TypeCounter =   0;
 //>>    GENERAL UTILITY FUNCTIONS
 //>>
 //
-template < class THXTarget_Type >
+template <  class THXTarget_Type >
 Int_t
 uGetTHDimension
  ( THXTarget_Type*   fTarget ) {
@@ -40,7 +40,8 @@ uGetTHDimension
     return -1;
 }
 //
-template < class THXTarget_Type, class THXSource_Type >
+template <  class THXTarget_Type,
+            class THXSource_Type >
 Int_t
 uGetTHPairDimension
 ( THXTarget_Type*   fTarget_1,    THXSource_Type*   fTarget_2 )  {
@@ -54,7 +55,8 @@ uGetTHPairDimension
 }
 //
 // TODO: Better implementation required (same max/min/nbin but different edges )
-template < class THXTarget_Type, class THXSource_Type >
+template <  class THXTarget_Type,
+            class THXSource_Type >
 Bool_t
 uIsTHPairConsistent
 ( THXTarget_Type*   fTarget_1,    THXSource_Type*   fTarget_2 )  {
@@ -77,7 +79,9 @@ uIsTHPairConsistent
 //>>    FUNCTIONS TO BUILD HISTOGRAMS
 //>>
 //
-template< typename TH1_Type = TH1F, typename stdVec_Type, typename = typename std::enable_if<std::is_arithmetic<stdVec_Type>::value, stdVec_Type>::type >
+template<   typename TH1_Type = TH1F,
+            typename stdVec_Type,
+            typename = typename std::enable_if<std::is_arithmetic<stdVec_Type>::value, stdVec_Type>::type >
 TH1_Type*
 uBuildTH1
  ( std::vector<stdVec_Type> fInputData, Int_t fNofBins = -1, Float_t fOffset = 0., Float_t fLowBound = 0, Float_t fHigBound = 0 )    {
@@ -101,7 +105,9 @@ uBuildTH1
 }
 //
 //  --  --  --  TODO: Implement
-template< typename TH1_Type = TH2F, typename stdVec_Type, typename = typename std::enable_if<std::is_arithmetic<stdVec_Type>::value, stdVec_Type>::type >
+template<   typename TH1_Type = TH2F,
+            typename stdVec_Type,
+            typename = typename std::enable_if<std::is_arithmetic<stdVec_Type>::value, stdVec_Type>::type >
 TH1_Type*
 uBuildTH2
  ( std::vector<stdVec_Type> fInputData, Int_t fNofBins = -1, Float_t fOffset = 0., Float_t fLowBound = 0, Float_t fHigBound = 0 )    {
@@ -109,7 +115,9 @@ uBuildTH2
 }
 //
 //  --  --  --  TODO: Implement
-template< typename TH1_Type = TH3F, typename stdVec_Type, typename = typename std::enable_if<std::is_arithmetic<stdVec_Type>::value, stdVec_Type>::type >
+template<   typename TH1_Type = TH3F,
+            typename stdVec_Type,
+            typename = typename std::enable_if<std::is_arithmetic<stdVec_Type>::value, stdVec_Type>::type >
 TH1_Type*
 uBuildTH3
  ( std::vector<stdVec_Type> fInputData, Int_t fNofBins = -1, Float_t fOffset = 0., Float_t fLowBound = 0, Float_t fHigBound = 0 )    {
@@ -122,7 +130,8 @@ uBuildTH3
 //
 //>>    >>  BINNING FUNCTIONS
 //
-template < class TH1Target_Type, class TH1Source_Type >
+template <  class TH1Target_Type,
+            class TH1Source_Type >
 void
 uRebin1D
 ( TH1Target_Type*   fTarget,    TH1Source_Type*   fSource )  {
@@ -160,7 +169,8 @@ uRebin1D
 }
 //
 //  --  --  --  TODO: Implement
-template < class TH2Taregt_Type, class TH2Source_Type >
+template <  class TH2Taregt_Type,
+            class TH2Source_Type >
 void
 uRebin2D
 ( TH2Taregt_Type*   fTarget,    TH2Source_Type*   fSource )  {
@@ -168,14 +178,16 @@ uRebin2D
 }
 //
 //  --  --  --  TODO: Implement
-template < class TH3Target_Type, class TH3Source_Type >
+template <  class TH3Target_Type,
+            class TH3Source_Type >
 void
 uRebin3D
 ( TH3Target_Type*   fTarget,    TH3Source_Type*   fSource )  {
     return;
 }
 //
-template < class THXTarget_Type, class THXSource_Type >
+template <  class THXTarget_Type,
+            class THXSource_Type >
 void
 uRebin
 ( THXTarget_Type*   fTarget,    THXSource_Type*   fSource )  {
@@ -188,7 +200,8 @@ uRebin
     }
 }
 //
-template< typename stdArr_Type, typename = typename std::enable_if<std::is_arithmetic<stdArr_Type>::value, stdArr_Type>::type >
+template<   typename stdArr_Type,
+            typename = typename std::enable_if<std::is_arithmetic<stdArr_Type>::value, stdArr_Type>::type >
 Float_t*
 uGetUniformBinningArray
 ( stdArr_Type fMinBin, stdArr_Type fMaxBin, Int_t fNBins ) {
@@ -197,7 +210,12 @@ uGetUniformBinningArray
     return  fResult;
 }
 //
-template< typename TInput1, typename TInput2, typename TInput3, typename = typename std::enable_if<std::is_arithmetic<TInput1>::value, TInput1>::type, typename = typename std::enable_if<std::is_arithmetic<TInput2>::value, TInput2>::type, typename = typename std::enable_if<std::is_arithmetic<TInput3>::value, TInput3>::type >
+template<   typename TInput1,
+            typename TInput2,
+            typename TInput3,
+            typename = typename std::enable_if<std::is_arithmetic<TInput1>::value, TInput1>::type,
+            typename = typename std::enable_if<std::is_arithmetic<TInput2>::value, TInput2>::type,
+            typename = typename std::enable_if<std::is_arithmetic<TInput3>::value, TInput3>::type >
 std::pair<Int_t,Float_t*>
 uUniformBinning
 ( TInput1 fBinWidth, TInput2 fLowEdge, TInput3 fHighEdge )  {
@@ -211,7 +229,7 @@ uUniformBinning
 //
 //>>    >>  BIN CONTENT FUNCTIONS
 //
-template< typename TH1_Type >
+template<   typename TH1_Type >
 void
 uOffset
 ( TH1_Type* hTarget, Double_t kOffset, Bool_t kAbsolute = false ){
@@ -222,14 +240,20 @@ uOffset
     }
 }
 //
-template< typename TH1_Type >
+template<   typename TH1_Type >
 void
 uAbsolute
 ( TH1_Type* hTarget ){
     uOffset( hTarget, 0, kTRUE );
 }
 //
-template< typename TH_Type, typename TInput1, typename TInput2, typename TInput3, typename = typename std::enable_if<std::is_arithmetic<TInput1>::value, TInput1>::type, typename = typename std::enable_if<std::is_arithmetic<TInput2>::value, TInput2>::type, typename = typename std::enable_if<std::is_arithmetic<TInput3>::value, TInput3>::type >
+template<   typename TH_Type,
+            typename TInput1,
+            typename TInput2,
+            typename TInput3,
+            typename = typename std::enable_if<std::is_arithmetic<TInput1>::value, TInput1>::type,
+            typename = typename std::enable_if<std::is_arithmetic<TInput2>::value, TInput2>::type,
+            typename = typename std::enable_if<std::is_arithmetic<TInput3>::value, TInput3>::type >
 TH_Type*
 uScale
  ( TH_Type* hTarget, TInput1 fScaleFactor, TInput2 fScaleError = -1. )  {
@@ -249,7 +273,10 @@ uScale
 }
 //
 // TODO: Generalise w/ TH_Type_3 as return
-template< Bool_t TSquareSum = true, typename TH_Type_1, typename TH_Type_2, typename TH_Type_3 = TH_Type_1 >
+template<   Bool_t TSquareSum = true,
+            typename TH_Type_1,
+            typename TH_Type_2,
+            typename TH_Type_3 = TH_Type_1 >
 TH_Type_3*
 uSumErrors
 ( TH_Type_1* hTarget_1, TH_Type_2* hTarget_2 ) {
@@ -269,7 +296,9 @@ uSumErrors
 }
 //
 // TODO: Generalise w/ TH_Type_3 as return
-template< Bool_t TSquareSum = true, typename TH_Type_1, typename TH_Type_2 = TH_Type_1 >
+template<   Bool_t TSquareSum = true,
+            typename TH_Type_1,
+            typename TH_Type_2 = TH_Type_1 >
 TH_Type_2*
 uRandomisePoints
 ( TH_Type_1* hTarget ) {
@@ -293,11 +322,29 @@ uRandomisePoints
 //>>    >>  WRITE/READ FILE FUNCTIONS
 //
 // TODO: Generalise for N cycles, for labels, for any TH1* if input std::vector& you can desume the TH1 type
-template< typename TH_Type = TH1F >
-std::vector<TH_Type*>
+template<   Int_t TDimension = 0,
+            typename TH_Type = TH1F,
+            typename TReturn_Type = typename TNVector< TDimension, TH_Type* >::type >
+TReturn_Type
 uLoadHistograms
-( TFile* kDataFile, TString kHistogramName, TString kNewName = "" ) {
-    std::vector<TH_Type*>  fResult;
+( TFile* kDataFile, TString kHistogramName, TString kNewName = ""  ) {
+    TReturn_Type fResult;
+    uLoadHistograms( fResult, kDataFile, kHistogramName, kNewName );
+    return fResult;
+}
+template<   typename TH_Type = TH1F >
+void
+uLoadHistograms
+( TH_Type*& fResult, TFile* kDataFile, TString kHistogramName, TString kNewName = "" ) {
+    fResult = (TH_Type*)(kDataFile->Get((kHistogramName)));
+    if ( !kNewName.IsNull() )   fResult->SetName((kNewName));
+    if ( !fResult ) cout << "[ERROR] No Histogram match found for " << kHistogramName.Data() << endl;
+    return fResult;
+}
+template<   typename TH_Type = TH1F >
+void
+uLoadHistograms
+( std::vector<TH_Type*>& fResult, TFile* kDataFile, TString kHistogramName, TString kNewName = "" ) {
     auto iTer = 0;
     while ( true ) {
         if ( !kDataFile->Get(Form(kHistogramName,iTer)) ) break;
@@ -306,10 +353,31 @@ uLoadHistograms
         iTer++;
     }
     if ( fResult.size() == 0 ) cout << "[ERROR] No Histogram match found for " << kHistogramName.Data() << endl;
-    return fResult;
+}
+template<   typename TH_Type = TH1F >
+void
+uLoadHistograms
+( std::vector<std::vector<TH_Type*>>& fResult, TFile* kDataFile, TString kHistogramName, TString kNewName = "" ) {
+    auto jTer = 0;
+    while ( true ) {
+        std::vector<TH_Type*>   kUtility;
+        auto iTer = 0;
+        while ( true ) {
+            if ( !kDataFile->Get(Form(kHistogramName,iTer,jTer)) ) break;
+            kUtility.push_back( new TH_Type ( *((TH_Type*)(kDataFile->Get(Form(kHistogramName,iTer,jTer)))) ) );
+            if ( !kNewName.IsNull() )    kUtility.at(iTer)->SetName(Form(kNewName,iTer,jTer));
+            iTer++;
+        }
+        if ( iTer == 0 ) break;
+        fResult.push_back( *(new std::vector<TH_Type*> (kUtility)) );
+        jTer++;
+    }
+    if ( fResult.size() == 0 ) cout << "[ERROR] No Histogram match found for " << kHistogramName.Data() << endl;
 }
 //
-template< typename TH_Type, typename TInput1, typename = typename std::enable_if<std::is_arithmetic<TInput1>::value > >
+template<   typename TH_Type,
+            typename TInput1 = Float_t,
+            typename = typename std::enable_if<std::is_arithmetic<TInput1>::value > >
 void
 uAddSumHistogram
  ( std::vector<TH_Type*> &hTarget, TString kNewName = "", std::vector<TInput1> kWeights = {} ) {
@@ -328,7 +396,9 @@ uAddSumHistogram
     hTarget                     .insert( hTarget.begin(), hResult );
 }
 //
-template< typename TH_Type, typename TInput1, typename = typename std::enable_if<std::is_arithmetic<TInput1>::value > >
+template<   typename TH_Type,
+            typename TInput1,
+            typename = typename std::enable_if<std::is_arithmetic<TInput1>::value > >
 void
 uAddSumHistogram
  ( std::vector<std::vector<TH_Type*>> &hTarget, TString kNewName = "", std::vector<TInput1> kWeights = {} ) {

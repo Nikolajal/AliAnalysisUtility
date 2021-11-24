@@ -12,9 +12,7 @@
 //  Global File w/ Constants and other functions
 #include "AliAnalysisUtility.h"
 //
-//>>
-//>>    RESONANCES BASED CALCULATION
-//>>
+//  --- RESONANCES BASED CALCULATION
 //
 template < Int_t TEvalMethod = 0, typename TH1VecType, typename TH1Template >
 std::vector<TH1Template*>
@@ -69,6 +67,7 @@ TH1Template*
 uCalculateResolutionTrueMassFIT
  ( std::vector<TH1VecType_1*> hInput, TH1Template* hFill  );
 //
+// TODO: Add check plots with bands where RMS +- nSigma is located, w/ superimpoxition of gauss fit resutls.
 template < typename TH1VecType_1, typename TH1VecType_2, typename TH1Template >
 std::vector<TH1F*>
 uCalculateResolution
