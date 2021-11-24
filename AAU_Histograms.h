@@ -19,13 +19,14 @@ Int_t       iBuilderTH1_TypeCounter =   0;
 //
 //  --- GENERAL UTILITY FUNCTIONS
 //
-template <  class THXTarget_Type >
+template <  typename THXTarget_Type >
 Int_t
 uGetTHDimension
  ( THXTarget_Type*   fTarget ) {
     TObject* kTObj1DTestTarget  =   dynamic_cast< TObject* >( fTarget );
     TH1* kHist1DTestTarget  =   dynamic_cast< TH1* >( fTarget );
-    if ( !kHist1DTestTarget || !kTObj1DTestTarget )   {
+    if ( !kHist1DTestTarget || !kTObj1DTestTarget || !fTarget )   {
+        if ( !fTarget ) cout << "[ERROR] Target is a nullptr" << endl;
         if ( !kHist1DTestTarget &&  kTObj1DTestTarget ) cout << "[ERROR] Target " << fTarget->GetName() << " is not a histogram!" << endl;
         if ( !kHist1DTestTarget && !kTObj1DTestTarget ) cout << "[ERROR] Target is not a TObject!" << endl;
         return -1;
@@ -38,8 +39,8 @@ uGetTHDimension
     return -1;
 }
 //
-template <  class THXTarget_Type,
-            class THXSource_Type >
+template <  typename THXTarget_Type,
+            typename THXSource_Type >
 Int_t
 uGetTHPairDimension
 ( THXTarget_Type*   fTarget_1,    THXSource_Type*   fTarget_2 )  {
@@ -52,9 +53,8 @@ uGetTHPairDimension
     return -1;
 }
 //
-// TODO: Better implementation required (same max/min/nbin but different edges )
-template <  class THXTarget_Type,
-            class THXSource_Type >
+template <  typename THXTarget_Type,
+            typename THXSource_Type >
 Bool_t
 uIsTHPairConsistent
 ( THXTarget_Type*   fTarget_1,    THXSource_Type*   fTarget_2 )  {
@@ -63,13 +63,52 @@ uIsTHPairConsistent
     if ( fTarget_1->GetNbinsX() != fTarget_2->GetNbinsX() ) return false;
     if ( fTarget_1->GetNbinsY() != fTarget_2->GetNbinsY() ) return false;
     if ( fTarget_1->GetNbinsZ() != fTarget_2->GetNbinsZ() ) return false;
-    if ( fTarget_1->GetXaxis()->GetXmax()() != fTarget_2->GetXaxis()->GetXmax()() ) return false;
-    if ( fTarget_1->GetYaxis()->GetXmax()() != fTarget_2->GetYaxis()->GetXmax()() ) return false;
-    if ( fTarget_1->GetZaxis()->GetXmax()() != fTarget_2->GetZaxis()->GetXmax()() ) return false;
-    if ( fTarget_1->GetXaxis()->GetXmin()() != fTarget_2->GetXaxis()->GetXmin()() ) return false;
-    if ( fTarget_1->GetYaxis()->GetXmin()() != fTarget_2->GetYaxis()->GetXmin()() ) return false;
-    if ( fTarget_1->GetZaxis()->GetXmin()() != fTarget_2->GetZaxis()->GetXmin()() ) return false;
-    // TODO: Check bin edges
+    for ( Int_t iBin = 1; iBin <= fTarget_1->GetNbinsX(); iBin++ ) {
+        for ( Int_t jBin = 1; jBin <= fTarget_1->GetNbinsY(); jBin++ ) {
+            for ( Int_t kBin = 1; kBin <= fTarget_1->GetNbinsZ(); kBin++ ) {
+                if ( fTarget_1->GetXaxis()->GetBinLowEdge( iBin ) != fTarget_2->GetXaxis()->GetBinLowEdge( iBin ) ) return false;
+                if ( fTarget_1->GetYaxis()->GetBinLowEdge( jBin ) != fTarget_2->GetYaxis()->GetBinLowEdge( jBin ) ) return false;
+                if ( fTarget_1->GetZaxis()->GetBinLowEdge( kBin ) != fTarget_2->GetZaxis()->GetBinLowEdge( kBin ) ) return false;
+            }
+        }
+    }
+    return true;
+}
+//
+template <  Bool_t  TCheckBoundaries = true,
+            typename THXTarget_Type,
+            typename THXSource_Type >
+Bool_t
+uIsTHPairRebinnable
+( THXTarget_Type*   fTarget_1,    THXSource_Type*   fTarget_2 )  {
+    auto    nDimension  = uGetTHPairDimension( fTarget_1, fTarget_2 );
+    if ( nDimension < 0 ) return false;
+    if ( TCheckBoundaries ) {
+        if ( fTarget_1->GetXaxis()->GetXmax()() != fTarget_2->GetXaxis()->GetXmax()() ) return false;
+        if ( fTarget_1->GetYaxis()->GetXmax()() != fTarget_2->GetYaxis()->GetXmax()() ) return false;
+        if ( fTarget_1->GetZaxis()->GetXmax()() != fTarget_2->GetZaxis()->GetXmax()() ) return false;
+        if ( fTarget_1->GetXaxis()->GetXmin()() != fTarget_2->GetXaxis()->GetXmin()() ) return false;
+        if ( fTarget_1->GetYaxis()->GetXmin()() != fTarget_2->GetYaxis()->GetXmin()() ) return false;
+        if ( fTarget_1->GetZaxis()->GetXmin()() != fTarget_2->GetZaxis()->GetXmin()() ) return false;
+    }
+    for ( Int_t iBin = 1; iBin <= fTarget_1->GetNbinsX(); iBin++ ) {
+        auto    kLowBinEdge_1   =   fTarget_1->GetXaxis()->GetBinLowEdge(iBin);
+        auto    kLowBinEdge_2   =   fTarget_2->GetXaxis()->GetBinLowEdge(fTarget_2->GetXaxis()->FindBin(kLowBinEdge_1));
+        auto    kLowBinEdge_3   =   fTarget_1->GetXaxis()->GetBinLowEdge(fTarget_1->GetXaxis()->FindBin(kLowBinEdge_2));
+        if ( kLowBinEdge_3 != kLowBinEdge_2 ) return false;
+    }
+    for ( Int_t jBin = 1; jBin <= fTarget_1->GetNbinsY(); jBin++ ) {
+        auto    kLowBinEdge_1   =   fTarget_1->GetYaxis()->GetBinLowEdge(jBin);
+        auto    kLowBinEdge_2   =   fTarget_2->GetYaxis()->GetBinLowEdge(fTarget_2->GetYaxis()->FindBin(kLowBinEdge_1));
+        auto    kLowBinEdge_3   =   fTarget_1->GetYaxis()->GetBinLowEdge(fTarget_1->GetYaxis()->FindBin(kLowBinEdge_2));
+        if ( kLowBinEdge_3 != kLowBinEdge_2 ) return false;
+    }
+    for ( Int_t kBin = 1; kBin <= fTarget_1->GetNbinsZ(); kBin++ ) {
+        auto    kLowBinEdge_1   =   fTarget_1->GetZaxis()->GetBinLowEdge(kBin);
+        auto    kLowBinEdge_2   =   fTarget_2->GetZaxis()->GetBinLowEdge(fTarget_2->GetZaxis()->FindBin(kLowBinEdge_1));
+        auto    kLowBinEdge_3   =   fTarget_1->GetZaxis()->GetBinLowEdge(fTarget_1->GetZaxis()->FindBin(kLowBinEdge_2));
+        if ( kLowBinEdge_3 != kLowBinEdge_2 ) return false;
+    }
     return true;
 }
 //
@@ -125,8 +164,8 @@ uBuildTH3
 //
 //  --- --- BINNING FUNCTIONS
 //
-template <  class TH1Target_Type,
-            class TH1Source_Type >
+template <  typename TH1Target_Type,
+            typename TH1Source_Type >
 void
 uRebin1D
 ( TH1Target_Type*   fTarget,    TH1Source_Type*   fSource )  {
@@ -164,8 +203,8 @@ uRebin1D
 }
 //
 //  --  --  --  TODO: Implement
-template <  class TH2Taregt_Type,
-            class TH2Source_Type >
+template <  typename TH2Taregt_Type,
+            typename TH2Source_Type >
 void
 uRebin2D
 ( TH2Taregt_Type*   fTarget,    TH2Source_Type*   fSource )  {
@@ -173,16 +212,16 @@ uRebin2D
 }
 //
 //  --  --  --  TODO: Implement
-template <  class TH3Target_Type,
-            class TH3Source_Type >
+template <  typename TH3Target_Type,
+            typename TH3Source_Type >
 void
 uRebin3D
 ( TH3Target_Type*   fTarget,    TH3Source_Type*   fSource )  {
     return;
 }
 //
-template <  class THXTarget_Type,
-            class THXSource_Type >
+template <  typename THXTarget_Type,
+            typename THXSource_Type >
 void
 uRebin
 ( THXTarget_Type*   fTarget,    THXSource_Type*   fSource )  {
@@ -431,7 +470,7 @@ uBuildTH1F
 //_____________________________________________________________________________
 //                                                  //  !TODO: Make the kMarkerstyle in a kArray
 //                                                  //  Relates to global variable kRainbowColor
-template < class Tclass >
+template < typename Tclass >
 void                    fSetRainbowStyle            ( std::vector<Tclass**> fInputObjectLits, Int_t fStartIteratorAt = 0 )  {
     TCanvas*    fResult     =   new TCanvas();
     Int_t       fIterator   =   fStartIteratorAt;
@@ -449,7 +488,7 @@ void                    fSetRainbowStyle            ( std::vector<Tclass**> fInp
 //
 //_____________________________________________________________________________
 //
-template < class Tclass >
+template < typename Tclass >
 void                    fSetUniformBinning          ( Tclass *fArrBin, Tclass fMinBin, Tclass fMaxBin, Int_t fNPoints )  {
     for (int i = 0; i <= fNPoints; i++ )
     {
@@ -966,4 +1005,6 @@ uMakeRatio
     }
     return fResult;
 }
-#endif
+
+
+#endif  /* AAU_Histograms_h */
