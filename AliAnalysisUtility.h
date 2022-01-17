@@ -17,6 +17,7 @@
 #include "AAU_Histograms.h"
 #include "AAU_Resolution.h"
 #include "AAU_Efficiency.h"
+#include "AAU_Extrapolation.h"
 //
 using namespace std;
 using namespace RooFit;

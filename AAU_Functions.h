@@ -12,7 +12,7 @@
 //>>    Functions File
 #include "AliAnalysisUtility.h"
 //
-//  --  --  Global Functions  --  --  //
+//  --  --  Global Variables  --  --  //
 //
 const Double_t  integralPrecision   =   1.e-12;
 //
@@ -209,6 +209,36 @@ void                    fSetBreitWigner2D           ()  {
     fBreitWigner2D      ->  SetParNames("Mean","Sigma");
 }
 //
+//
+std::vector<TF1*>   kAllFunctions   =   { fLevyTsallis, fMTExponential, fBoseEinstein, fBoltzmann, fPowerLaw };
+std::vector<std::tuple<TF1*,Float_t,Float_t,TString>>   kStandardSystematicFitFunctions =
+    {   {   fLevyTsallis,   0.4,    10.,    "EMRQSI"},
+        {   fLevyTsallis,   0.4,    5.0,    "EMRQSI"},
+        {   fLevyTsallis,   0.4,    3.0,    "EMRQSI"},
+        {   fLevyTsallis,   0.4,    2.0,    "EMRQSI"},
+        {   fLevyTsallis,   0.4,    1.5,    "EMRQSI"},
+        {   fLevyTsallis,   0.4,    1.0,    "EMRQSI"},
+        {   fMTExponential, 0.4,    2.0,    "EMRQSI"},
+        {   fMTExponential, 0.4,    1.5,    "EMRQSI"},
+        {   fMTExponential, 0.4,    1.2,    "EMRQSI"},
+        {   fMTExponential, 0.4,    1.0,    "EMRQSI"},
+        {   fBoseEinstein,  0.4,    2.0,    "EMRQSI"},
+        {   fBoseEinstein,  0.4,    1.5,    "EMRQSI"},
+        {   fBoseEinstein,  0.4,    1.2,    "EMRQSI"},
+        {   fBoseEinstein,  0.4,    1.0,    "EMRQSI"},
+        {   fBoltzmann,     0.4,    2.0,    "EMRQSI"},
+        {   fBoltzmann,     0.4,    1.5,    "EMRQSI"},
+        {   fBoltzmann,     0.4,    1.2,    "EMRQSI"},
+        {   fBoltzmann,     0.4,    1.0,    "EMRQSI"}
+    };
+
+
+/*
+std::vector<std::pair<TF1*,std::vector<float>>> fSystFitFunctions  =   {  {fMTExponential,{1.2,1.4,1.6,2.0}}, {fBoseEinstein,{1.2,1.4,1.6,2.0}}, {fBoltzmann,{1.2,1.4,1.6,2.0}}, {fPowerLaw,{2.0,2.8,4.0}}, {fLevyTsallis,{1.2,1.4,1.6,2.0,2.8,4.0}} };//, {fBGBlastWave,{1.2,1.4,1.6,2.0,2.8,4.0}} };
+ */
+
+
+
 
 //________________________________________________>> Boltzmann-Gibbs Blast-Wave
 //_____________________________________________________________________________

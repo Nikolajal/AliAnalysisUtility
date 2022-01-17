@@ -187,4 +187,11 @@ fPrintLoopTimer
 }
 //---------------------------------------------------------------------------------------------------------------------------------------------------
 //
+template < typename TTarget_Type >
+void
+push_to_front
+( std::vector<TTarget_Type>& vTarget, TTarget_Type tAddition )  {
+    vTarget.insert( vTarget.begin(), tAddition );
+}
+//
 #endif

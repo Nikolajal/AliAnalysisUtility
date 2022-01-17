@@ -41,10 +41,10 @@ auto const          TeV                             =   1e+3;
 TString                 kMSG_PrintTimer             =   "\r[INFO] [%s] Event # %7.f %s | %3.1f %% | %7.2f %s events/s | Time: %02.0f:%02.0f:%02.0f | ETA: %02.0f:%02.0f:%02.0f [%s]";
 //
 //  --- --- Scale for restricted Gauss Integrals
-Float_t const       kGaussIntegralScale []          =   {0.68268949,0.95449974,0.99730020,0.99993666,0.99999943};
-Float_t const       kGaussStndDevtScale []          =   {1.85349570,1.13687290,1.01350180,1.00048960,1.00000000};
+Float_t const       kGaussIntegralScale []          =   {0.68268949,0.95449974,0.99730020,0.99993666,0.99999943,1.00000000};
+Float_t const       kGaussStndDevtScale []          =   {1.85349570,1.13687290,1.01350180,1.00048960,1.00000000,1.00000000};
 //
 //  --- --- Standard Legend for Resolution control plot
-std::vector<TString>    kResolutionLegend           =   {"RMS 1 #sigma","RMS 2 #sigma","RMS 3 #sigma","RMS 4 #sigma","RMS 5 #sigma","Gaus 1 #sigma","Gaus 2 #sigma","Gaus 3 #sigma","Gaus 4 #sigma","Gaus 5 #sigma","True Mass Fit"};
+std::vector<TString>    kResolutionLegend           =   {"RMS 1 #sigma","RMS 2 #sigma","RMS 3 #sigma","RMS 4 #sigma","RMS 5 #sigma","RMS 6 #sigma","Gaus 1 #sigma","Gaus 2 #sigma","Gaus 3 #sigma","Gaus 4 #sigma","Gaus 5 #sigma","Gaus 6 #sigma","True Mass Fit"};
 //
 #endif
