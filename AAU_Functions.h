@@ -193,18 +193,18 @@ void                    fSetLevyTsallis2D           ()  {
     fLevyTsallis2D      ->  SetParNames("XMass","Xn","XT","YMass","Yn","YT","dN_dy");
 }
 //
-Double_t                _BreitWigner                    ( Double_t * fVar, Double_t * fParams ) {
+Double_t                _BreitWigner                ( Double_t * fVar, Double_t * fParams ) {
     return      TMath::BreitWigner(fVar[0],fParams[0],fParams[1]);
 }
-TF1                    *fBreitWigner                   = new TF1 ("BreitWigner",_BreitWigner,0.,100.,2);
-void                    fSetBreitWigner           ()  {
+TF1                    *fBreitWigner                = new TF1 ("BreitWigner",_BreitWigner,0.,100.,2);
+void                    fSetBreitWigner             ()  {
     fBreitWigner      ->  SetParNames("Mean","Sigma");
 }
 //
-Double_t                _BreitWigner2D                    ( Double_t * fVar, Double_t * fParams ) {
+Double_t                _BreitWigner2D              ( Double_t * fVar, Double_t * fParams ) {
     return      TMath::BreitWigner(fVar[0],fParams[0],fParams[1])*TMath::BreitWigner(fVar[1],fParams[0],fParams[1]);
 }
-TF2                    *fBreitWigner2D                   = new TF2 ("BreitWigner2D",_BreitWigner2D,0.,100.,0.,100.,2,2);
+TF2                    *fBreitWigner2D              = new TF2 ("BreitWigner2D",_BreitWigner2D,0.,100.,0.,100.,2,2);
 void                    fSetBreitWigner2D           ()  {
     fBreitWigner2D      ->  SetParNames("Mean","Sigma");
 }
@@ -214,22 +214,17 @@ std::vector<TF1*>   kAllFunctions   =   { fLevyTsallis, fMTExponential, fBoseEin
 std::vector<std::tuple<TF1*,Float_t,Float_t,TString>>   kStandardSystematicFitFunctions =
     {   {   fLevyTsallis,   0.4,    10.,    "EMRQSI"},
         {   fLevyTsallis,   0.4,    5.0,    "EMRQSI"},
-        {   fLevyTsallis,   0.4,    3.0,    "EMRQSI"},
         {   fLevyTsallis,   0.4,    2.0,    "EMRQSI"},
         {   fLevyTsallis,   0.4,    1.5,    "EMRQSI"},
-        {   fLevyTsallis,   0.4,    1.0,    "EMRQSI"},
+        {   fMTExponential, 0.4,    5.0,    "EMRQSI"},
         {   fMTExponential, 0.4,    2.0,    "EMRQSI"},
         {   fMTExponential, 0.4,    1.5,    "EMRQSI"},
-        {   fMTExponential, 0.4,    1.2,    "EMRQSI"},
-        {   fMTExponential, 0.4,    1.0,    "EMRQSI"},
+        {   fBoseEinstein,  0.4,    5.0,    "EMRQSI"},
         {   fBoseEinstein,  0.4,    2.0,    "EMRQSI"},
         {   fBoseEinstein,  0.4,    1.5,    "EMRQSI"},
-        {   fBoseEinstein,  0.4,    1.2,    "EMRQSI"},
-        {   fBoseEinstein,  0.4,    1.0,    "EMRQSI"},
+        {   fBoltzmann,     0.4,    5.0,    "EMRQSI"},
         {   fBoltzmann,     0.4,    2.0,    "EMRQSI"},
-        {   fBoltzmann,     0.4,    1.5,    "EMRQSI"},
-        {   fBoltzmann,     0.4,    1.2,    "EMRQSI"},
-        {   fBoltzmann,     0.4,    1.0,    "EMRQSI"}
+        {   fBoltzmann,     0.4,    1.5,    "EMRQSI"}
     };
 
 

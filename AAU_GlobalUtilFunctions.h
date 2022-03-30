@@ -80,8 +80,9 @@ uCurrentDateTime
 bool
 fCheckMask
  ( Int_t fToBeChecked, Int_t iMaskCheck, Bool_t fOnlyThis = false )    {
-    if ( fToBeChecked == 0  )   return false;
-    if ( !fOnlyThis )   return  ( fToBeChecked &    BIT(iMaskCheck) );
+    if ( ( fToBeChecked == 0 ) && ( iMaskCheck == -1 ) )    return true;
+    if ( ( fToBeChecked <= 0 ) || ( iMaskCheck <= 0 ) )     return false;
+    if ( !fOnlyThis )   return  ( fToBeChecked & BIT(iMaskCheck) );
     else                return  ( fToBeChecked ==   BIT(iMaskCheck) );
 }
 //---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -194,4 +195,35 @@ push_to_front
     vTarget.insert( vTarget.begin(), tAddition );
 }
 //
+//---------------------------------------------------------------------------------------------------LEGACY-----------------------------------------------
+Double_t
+fGammaPhiValue
+ ( Double_t fYieldPhi, Double_t fYieldPhiPhi )  {
+    return  2*fYieldPhiPhi/fYieldPhi -fYieldPhi;
+}
+Double_t
+fGammaPhiError
+ ( Double_t fYieldPhi, Double_t fYieldPhiPhi, Double_t fErrorPhi, Double_t fErrorPhiPhi)  {
+    auto    fPar1   =   2*fErrorPhiPhi/fYieldPhi;
+    auto    fPar2   =   (2*fYieldPhiPhi/(fYieldPhi*fYieldPhi)+1)*fErrorPhi;
+    return  fPar1 + fPar2;
+}
+Double_t
+fSigmaPhiValue
+ ( Double_t fYieldPhi, Double_t fYieldPhiPhi )  {
+    return  2*fYieldPhiPhi + fYieldPhi - fYieldPhi*fYieldPhi;
+}
+Double_t
+fSigmaPhiError
+ ( Double_t fYieldPhi, Double_t fYieldPhiPhi, Double_t fErrorPhi, Double_t fErrorPhiPhi)  {
+    return SquareSum( { 2*fErrorPhiPhi, (-1+2*fYieldPhi)*fErrorPhi } );
+}
+Double_t
+uFindPercentile
+ ( TH1D* hReference, Double_t kCurrent )  {
+    auto kBin = hReference->GetXaxis()->FindBin(kCurrent);
+    auto kTot = hReference->Integral(-1,-1);
+    auto kPrt = hReference->Integral(1,kBin);
+    return kPrt/kTot;
+}
 #endif

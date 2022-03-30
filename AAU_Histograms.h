@@ -5,15 +5,20 @@
 //
 //  Author              Nicola Rubini
 //  Created             22/11/2021
-//  Last modified       24/11/2021
+//  Last modified       23/03/2022
+//
 #ifndef ALIANALYSISUTILITY_HISTOGRAMS_H
 #define ALIANALYSISUTILITY_HISTOGRAMS_H
+//
 //  TODO: Implement histogram check for all functions
+//  TODO: Implement general function w/ warning and error messages for histogram check and bool to enable work on histo
 //
 //  Global File w/ Constants and other functions
 #include "AliAnalysisUtility.h"
 //
-//  --- GLOBAL VARIABLES
+//  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+//  --- --- --- --- --- --- //! GENERAL UTILITY VARIABLES
+//  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 //
 Int_t       iBuilderTH1_TypeCounter =   0;
 //
@@ -124,7 +129,8 @@ template<   typename TH1_Type = TH1F,
             typename = typename std::enable_if<std::is_arithmetic<stdVec_Type>::value, stdVec_Type>::type >
 TH1_Type*
 uBuildTH1
- ( std::vector<stdVec_Type> fInputData, Int_t fNofBins = -1, Float_t fOffset = 0., Float_t fLowBound = 0, Float_t fHigBound = 0 )    {
+( std::vector<stdVec_Type> fInputData, Int_t fNofBins = -1, Float_t fOffset = 0., Float_t fLowBound = 0, Float_t fHigBound = 0 )    {
+    if ( fInputData.size() == 0 ) return new TH1_Type(Form("TH1_Type_from_vector_%i",iBuilderTH1_TypeCounter),Form("TH1_Type_from_vector_%i",iBuilderTH1_TypeCounter),1,0,1);
     auto    fMaxValue   =   *std::max_element(std::begin(fInputData),std::end(fInputData));
     auto    fMinValue   =   *std::min_element(std::begin(fInputData),std::end(fInputData));
     auto    fSizeOfAr   =   fInputData.size();
@@ -298,7 +304,7 @@ template<   typename THXTarget_Type,
             typename = typename std::enable_if<std::is_arithmetic<TInput2>::value, TInput2>::type >
 THXTarget_Type*
 uScale
- ( THXTarget_Type* hTarget, TInput1 fScaleFactor, TInput2 fScaleError = -1. )  {
+ ( THXTarget_Type* hTarget, TInput1 fScaleFactor, Double_t fScaleError = -1. )  {
     auto    nDimension  =   uGetTHDimension( hTarget );
     auto    fResult     =   (THXTarget_Type*)(hTarget->Clone());
     if ( nDimension < 0 ) return fResult;
@@ -306,9 +312,12 @@ uScale
         for ( Int_t jBin = 1; jBin <= fResult->GetNbinsY(); jBin++ ) {
             for ( Int_t kBin = 1; kBin <= fResult->GetNbinsZ(); kBin++ ) {
                 auto    kGlobalBin  =   fResult->GetBin( iBin, jBin, kBin );
-                fResult ->  SetBinContent   ( kGlobalBin, fScaleFactor  * hTarget   ->  GetBinContent   ( iBin ) );
-                if ( fScaleError <= -1 )fResult ->  SetBinError     ( kGlobalBin,   fScaleFactor    *   hTarget   ->  GetBinError     ( iBin ) );
-                else                    fResult ->  SetBinError     ( kGlobalBin,   ( 1 + fScaleError ) * fScaleError     *   hTarget   ->  GetBinError     ( iBin ) );
+                if ( fScaleFactor == -1 )       fResult ->  SetBinContent   ( kGlobalBin,   1 );
+                else                            fResult ->  SetBinContent   ( kGlobalBin,   fScaleFactor * hTarget   ->  GetBinContent   ( iBin ) );
+                if ( fScaleError == -1 )        fResult ->  SetBinError     ( kGlobalBin,   fScaleFactor * hTarget   ->  GetBinError     ( iBin ) );
+                else if ( fScaleError == -2 )   fResult ->  SetBinError     ( kGlobalBin,   0 );
+                else                            fResult ->  SetBinError     ( kGlobalBin,   fScaleFactor * hTarget   ->  GetBinContent   ( iBin ) * SquareSum( { hTarget->GetBinError( iBin ) / hTarget->GetBinContent( iBin ), fScaleError / fScaleFactor } ) );
+                if ( fScaleFactor == -1 )       fResult ->  SetBinError     ( kGlobalBin,   hTarget   ->  GetBinError   ( iBin ) / hTarget   ->  GetBinContent   ( iBin ) );
             }
         }
     }
@@ -334,6 +343,23 @@ uSumErrors
                 fResult ->  SetBinError( iBin, kNewError );
             }
         }
+    }
+    return  fResult;
+}
+//
+template <  Bool_t      TSquareSum      = kTRUE,
+            typename    THXTarget_Type  = TH1F >
+THXTarget_Type*
+uSumErrors
+ ( std::vector<THXTarget_Type*> hTarget )    {
+    THXTarget_Type*   fResult =   (THXTarget_Type*)(hTarget.at(0)->Clone());
+    Bool_t  bSkipFirst = true;
+    for ( auto kCurrentHisto : hTarget )    {
+        if ( bSkipFirst ) {
+            bSkipFirst = false;
+            continue;
+        }
+        fResult =   uSumErrors<TSquareSum,THXTarget_Type>( fResult, kCurrentHisto );
     }
     return  fResult;
 }
@@ -545,7 +571,10 @@ uReverseStructure
 }
 //
 //  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-//
+//  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+//  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+//  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+//  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 //  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 //  --- --- --- --- --- --- //! TODO: LEGACY, TO BE CHECKED AGAIN
 //  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
@@ -651,87 +680,7 @@ std::vector<TH1D*>      uRandomizePointsSymm    ( std::vector<TH1D*>  gStatic, s
     }
     return  fResult;
 }
-void
-uSetHisto
-( TH1* hTarget, TString fOption ){
-    hTarget->SetTitle("");
-    if ( fOption.Contains("1D") || fOption.Contains("12D") )   {
-        if ( fOption.Contains("EFF") ) {
-            // Y-Axis limits
-            hTarget->Scale(100.);
-            hTarget->SetMaximum(100.);
-            hTarget->SetMinimum(0.);
-            // Y-Axis title
-            hTarget->GetYaxis()->SetTitle("Efficiency #times Acceptance (%)");
-            // Marker style
-            hTarget->SetMarkerStyle(kMarkers[5]);
-            // Colour scheme
-            hTarget->SetMarkerColor(kColors[2]);
-            hTarget->SetLineColor(kColors[2]);
-            hTarget->SetFillColorAlpha(kFillColors[2],0.33);
-            //
-            hTarget->SetOption("EP L");
-            if ( fOption.Contains("EFF2") ) {
-                hTarget->SetMarkerStyle(kMarkers[9]);
-                hTarget->SetMarkerColor(kColors[1]);
-                hTarget->SetLineColor(kColors[1]);
-                hTarget->SetFillColorAlpha(kFillColors[1],0.33);
-                hTarget->SetOption("EP L SAME");
-            }
-            if ( fOption.Contains("SL") ) {
-                // Y-Axis title
-                hTarget->GetYaxis()->SetTitle("Signal Loss (%)");
-                uOffset(hTarget,-100);
-                hTarget->SetMaximum(10.);
-                hTarget->SetMinimum(-1.);
-            }
-        }
-        if ( fOption.Contains("SPT") ) {
-            
-             // Preferred kColors and kMarkers
-             //const Int_t kFillColors[] = {kGray+1,  kRed-10, kBlue-9, kGreen-8, kMagenta-9, kOrange-9,kCyan-8,kYellow-7}; // for syst bands
-             //const Int_t kColors[]     = {kBlack, kRed+1 , kBlue+1, kGreen+3, kMagenta+1, kOrange-1,kCyan+2,kYellow+2};
-             //const Int_t kMarkers[]    = {kFullCircle, kFullSquare,kOpenCircle,kOpenSquare,kOpenDiamond,kOpenCross,kFullCross,kFullDiamond,kFullStar,kOpenStar};
-            
-            hTarget->SetMarkerStyle(kMarkers[3]);
-            hTarget->SetMarkerColor(kColors[2]);
-            hTarget->SetMarkerSize(1);
-            hTarget->GetXaxis()->SetTitle("#it{p}_{T} (GeV/#it{c})");
-            hTarget->GetYaxis()->SetTitleOffset(1.5);
-            hTarget->GetYaxis()->SetTitle("1/N_{ev}dN^{2}/(dydp_{T})");
-            if ( fOption.Contains("12D") )  {
-                hTarget->GetYaxis()->SetTitle("1/N_{ev}dN^{3}/(dydp_{T,#phi_{1}}dp_{T,#phi_{2}})");
-                hTarget->GetXaxis()->SetTitle("#it{p}_{T,#phi_{1}} (GeV/#it{c})");
-            }
-        }
-        if ( fOption.Contains("MPT") ) {
-            hTarget->SetMarkerStyle(kMarkers[3]);
-            hTarget->SetMarkerColor(kColors[2]);
-            hTarget->SetMarkerSize(1);
-            hTarget->GetXaxis()->SetTitleOffset(1.1);
-            hTarget->GetXaxis()->SetTitle("#it{p}_{T,#phi_{1}} (GeV/#it{c})");
-            hTarget->GetYaxis()->SetTitleOffset(1.5);
-            hTarget->GetYaxis()->SetTitle("#LT #it{p}_{T,#phi_{2}} #GT (GeV/#it{c})");
-        }
-        if ( fOption.Contains("STAT") ) {
-            hTarget->SetLineColor(kColors[2]);
-            hTarget->SetFillColorAlpha(kColors[2],0.33);
-            hTarget->SetOption("PE2");
-        }
-        if ( fOption.Contains("SYST") ) {
-            hTarget->SetLineColor(kColors[3]);
-            hTarget->SetFillColorAlpha(kColors[3],0.);
-            hTarget->SetOption("PE2");
-        }
-    } else if ( fOption.Contains("2D") )   {
-        
-    } else if ( fOption.Contains("3D") )   {
-        cout << " Buu 3D " << endl;
-    } else  {
-        cout << " CANT GUESS DIMENSION " << endl;
-    }
-}
-
+//
 template<   typename THXTarget_Type = TH1F >
 Double_t
 uGetFWHM
@@ -765,11 +714,6 @@ uGetFWHM
     double fwhm = h1->GetBinCenter(bin2) - h1->GetBinCenter(bin1);
      */
 }
-//  --  --  --  RETRO COMPATIBILITY, TO BE CLEANED
-//
-//  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
-//  --- --- --- --- --- --- //! TODO: NOT PROPER, TO BE CHECKED AGAIN
-//  --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 //
 std::vector<TH1F*>
 uMakeRatio
@@ -781,6 +725,107 @@ uMakeRatio
         fResult.push_back( kNewHisto );
     }
     return fResult;
+}
+//
+// !TODO: Implement compact version with only std::vector ( first element data ) differentiate target type for inconsistence
+template<   typename THXTarget_Type,
+            typename THXTargetMC_Type >
+TCanvas*
+uPlotYieldWithMC
+ ( THXTarget_Type* hData_Stat, THXTarget_Type* hData_Syst, std::vector<THXTargetMC_Type*> hBinnedMC, std::vector<THXTargetMC_Type*> hFineBinningMC, std::vector<TString> fLegend = {}, TString fOption = "" )  {
+    //
+    SetStyle();
+    //
+    TCanvas*        cDrawYieldWithMC    =   new TCanvas("cDrawYieldWithMC","cDrawYieldWithMC",800,1000);
+    gStyle->SetOptStat(0);
+    //
+    TLegend*        lMCProductions;
+    if ( fOption.Contains("R") )        lMCProductions =   new TLegend(0.65,0.35,0.85,0.5);
+    else if ( fOption.Contains("T") )   lMCProductions =   new TLegend(0.18,0.18,0.38,0.33);
+    else                                lMCProductions =   new TLegend(0.2,0.35,0.4,0.5);
+    lMCProductions  ->  SetNColumns(2);
+    lMCProductions  ->  SetFillColorAlpha(0.,0.);
+    //
+    uSetHisto( hData_Stat, fOption + TString(" STAT") );
+    uSetHisto( hData_Syst, fOption + TString(" SYST") );
+    //
+    lMCProductions  ->  SetFillColorAlpha(0.,0.);
+    lMCProductions  ->  AddEntry( hData_Stat, "Data",       "P" );
+    lMCProductions  ->  AddEntry( hData_Stat, "Stat Err.",  "E" );
+    lMCProductions  ->  AddEntry( hData_Syst, "Syst Err.",  "F" );
+    //
+    TPad*   kUpperPlot  =   new TPad("kUpperPlot", "kUpperPlot", 0, 0.3, 1, 1.0);
+    gStyle      ->  SetOptStat(0);
+    kUpperPlot  ->  SetBottomMargin(0);
+    kUpperPlot  ->  Draw();
+    kUpperPlot  ->  cd();
+    //
+    auto    hDrawUtil   =   (THXTargetMC_Type*)hFineBinningMC.at(0)->Clone();
+    hDrawUtil = uScale(hDrawUtil,0,-2);
+    hDrawUtil ->  GetXaxis()  ->  SetRangeUser( 0., hData_Stat->GetXaxis()->GetBinLowEdge(hData_Stat->GetXaxis()->GetLast()+1) );
+    if ( fOption.Contains("SPT") )  {
+        gPad->SetLogy();
+        hDrawUtil->SetMaximum(2.0*max(hData_Stat->GetMaximum(),hData_Syst->GetMaximum()));
+        hDrawUtil->SetMinimum(0.5*min(hData_Stat->GetMinimum(),hData_Syst->GetMinimum()));
+    } else {
+        hDrawUtil->SetMaximum(1.2*max(hData_Stat->GetMaximum(),hData_Syst->GetMaximum()));
+        hDrawUtil->SetMinimum(0.8*min(hData_Stat->GetMinimum(),hData_Syst->GetMinimum()));
+    }
+    hDrawUtil->DrawCopy();
+    //
+    hData_Syst  ->  Draw("SAME PE2");
+    hData_Stat  ->  Draw("SAME PE []");
+    auto iTer = 0;
+    for ( auto kCurrent_MC : hFineBinningMC )  {
+        //
+        //if ( iTer == 0 ) kCurrent_MC ->  Scale(0.9);
+        kCurrent_MC ->  SetTitle("");
+        kCurrent_MC ->  SetLineColor( uGetColor( iTer+2 ) );
+        kCurrent_MC ->  SetLineWidth ( 3 );
+        kCurrent_MC ->  Draw("SAME HIST L ][");
+        //
+        if ( iTer+1 > fLegend.size() )          lMCProductions->AddEntry( kCurrent_MC, kCurrent_MC->GetName(),  "EP" );
+        else if ( !fLegend.at(iTer).IsNull() )  lMCProductions->AddEntry( kCurrent_MC, fLegend.at(iTer),        "EP" );
+        else                                    lMCProductions->AddEntry( kCurrent_MC, kCurrent_MC->GetName(),  "EP" );
+        iTer++;
+    }
+    lMCProductions->Draw("SAME");
+    //
+    cDrawYieldWithMC-> cd();
+    TPad*   kLowerPlot  =   new TPad("kLowerPlot", "kLowerPlot", 0, 0.0, 1, 0.3);
+    kLowerPlot      ->  SetGridy();
+    gStyle          ->  SetOptStat(0);
+    gPad            ->  SetGridy();
+    kLowerPlot->SetTopMargin(0);
+    kLowerPlot->Draw();
+    kLowerPlot->cd();
+    auto    kDataReference  =   ( THXTarget_Type* )( uSumErrors( hData_Stat, hData_Syst )->Clone() );
+    auto    kDataRefError_  =   ( THXTarget_Type* )( uSumErrors( hData_Stat, hData_Syst )->Clone() );
+    kDataReference  ->  Divide( kDataReference, kDataReference );
+    for ( Int_t iBin = 1; iBin <= kDataReference->GetNbinsX(); iBin++)  { kDataReference->SetBinError( iBin, kDataRefError_->GetBinError(iBin) / kDataRefError_->GetBinContent(iBin) ); }
+    kDataReference  ->  SetLineColor( 1 );
+    kDataReference  ->  SetLineStyle( 1 );
+    kDataReference  ->  SetLineWidth( 3 );
+    kDataReference  ->  SetFillColorAlpha( 1, 0.33 );
+    iTer = 0;
+    for ( auto kCurrent_MC : hBinnedMC )  {
+        auto    kCurrent_Ratio  =   ( THXTarget_Type* )( kCurrent_MC->Clone() );
+        kCurrent_Ratio  ->  GetYaxis()  ->  SetTitle( "" );
+        kCurrent_Ratio  ->  SetTitle( "" );
+        kCurrent_Ratio  ->  Divide( kCurrent_MC, hData_Stat );
+        kCurrent_Ratio  ->  SetMaximum( 2.0 );
+        kCurrent_Ratio  ->  SetMinimum( 0.0 );
+        kCurrent_Ratio  ->  GetXaxis()  ->  SetRangeUser( 0., hData_Stat->GetXaxis()->GetBinLowEdge(hData_Stat->GetXaxis()->GetLast()+1) );
+        kCurrent_Ratio  ->  SetLineColor( uGetColor( iTer+2 ) );
+        kCurrent_Ratio  ->  SetLineWidth ( 3 );
+        kCurrent_Ratio  ->  Draw("SAME HIST ][");
+        iTer++;
+    }
+    kDataReference->Draw("SAME E3 ][");
+    //
+    kUpperPlot->cd();
+    //
+    return cDrawYieldWithMC;
 }
 //
 #endif  /* AAU_Histograms_h */

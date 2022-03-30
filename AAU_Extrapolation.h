@@ -5,7 +5,8 @@
 //
 //  Author              Nicola Rubini
 //  Created             01/12/2021
-//  Last modified       01/12/2021
+//  Last modified       24/01/2022
+//
 #ifndef AAU_Extrapolation_h
 #define AAU_Extrapolation_h
 //
@@ -43,7 +44,7 @@ uMeasureFullYield
     //
     //  --- --- --- Assigning Integral Results
     fResult["YL_INT"] = { kScale*kIntegral_Yield,   kScale*kIntegral_Yield_stat,    kScale*kIntegral_Yield_syst };
-    fResult["PT_INT"] = { kFull_TMom,               kIntegral_TMom_stat,            kIntegral_TMom_syst         };
+    fResult["PT_INT"] = { kFull_TMom,               0,                              0         };
     //
     //  TODO: Check this can be taken care of by an external function
     if ( !kSaveFolder.IsNull() ) {
@@ -60,6 +61,8 @@ uMeasureFullYield
         cSaveMeasureFit             ->  cd(1);
         gPad                        ->  SetLogy();
         hFullUncertainties          ->  DrawCopy();
+        uLatex                      ->  DrawLatexNDC( 0.51, 0.81, Form("#frac{dN}{dy}_{fll}: %.3f #times10^{3}",1.e3*( kIntegral_Yield + kExtrapol_Yield ) ) );
+        uLatex                      ->  DrawLatexNDC( 0.50, 0.71, Form("#LT#it{p}_{T}#GT: %.6f",kFull_TMom) );
         get<0>(fExtrapolationFunc)  ->  DrawCopy("SAME");
         //
         auto    kLowLimit           =   get<1>(fExtrapolationFunc);
@@ -68,6 +71,8 @@ uMeasureFullYield
         cSaveMeasureFit             ->  cd(2);
         gPad                        ->  SetLogy();
         hFullUncertainties          ->  DrawCopy();
+        uLatex                      ->  DrawLatexNDC( 0.51, 0.81, Form("#frac{dN}{dy}_{ext}: %.3f #times10^{3}",1.e3*kExtrapol_Yield) );
+        uLatex                      ->  DrawLatexNDC( 0.56, 0.71, Form("Ext. Frac.: %.1f %%",1.e2* ( kExtrapol_Yield )/( kIntegral_Yield + kExtrapol_Yield ) ) );
         get<0>(fExtrapolationFunc)  ->  DrawCopy("SAME");
         //
                 kLowLimit           =   get<2>(fExtrapolationFunc) - 0.5*( get<2>(fExtrapolationFunc) - get<1>(fExtrapolationFunc) );
@@ -76,6 +81,7 @@ uMeasureFullYield
         cSaveMeasureFit             ->  cd(3);
         gPad                        ->  SetLogy();
         hFullUncertainties          ->  DrawCopy();
+        uLatex                      ->  DrawLatexNDC( 0.51, 0.81, Form("#frac{dN}{dy}_{Int}: %.3f #times10^{3}",1.e3*kIntegral_Yield) );
         get<0>(fExtrapolationFunc)  ->  DrawCopy("SAME");
         //
         cSaveMeasureFit  ->  SaveAs( ( kSaveFolder + TString("/FullYield") + kSaveName + TString(".pdf") ) );
@@ -93,56 +99,16 @@ uMeasureFullYield
     kExtrapol_TMom_syst     =   SquareSum( { kSystEval.second.second, kFFitEval.second.second } );
     //
     fResult["YL_EXT"] = { kScale*kExtrapol_Yield,     kScale*kExtrapol_Yield_stat,       kScale*kExtrapol_Yield_syst        };
-    fResult["PT_EXT"] = { kFull_TMom,        kExtrapol_TMom_stat,    kExtrapol_TMom_syst    };
+    fResult["PT_EXT"] = { kFull_TMom, 0, 0 };
     fResult["YL_FLL"] = { get<0>(fResult["YL_INT"]) + get<0>(fResult["YL_EXT"]), SquareSum( { get<1>(fResult["YL_INT"]), get<1>(fResult["YL_EXT"]) } ), SquareSum( { get<2>(fResult["YL_INT"]), get<2>(fResult["YL_EXT"]) } ) };
-    fResult["PT_FLL"] = { get<0>(fResult["PT_INT"]) + get<0>(fResult["PT_EXT"]), SquareSum( { get<1>(fResult["PT_INT"]), get<1>(fResult["PT_EXT"]) } ), SquareSum( { get<2>(fResult["PT_INT"]), get<2>(fResult["PT_EXT"]) } ) };
+    fResult["PT_FLL"] = { kFull_TMom,  kExtrapol_TMom_stat, kExtrapol_TMom_syst  };
+    fResult["YL_FIT"] = { kFFitEval.first.first, kFFitEval.first.second, -1 };
+    fResult["PT_FIT"] = { kFFitEval.second.first, kFFitEval.second.second, -1 };
     //
     //  --- Optimisation off
     gROOT->SetBatch(kFALSE);
     //
     return fResult;
-}
-//
-void
-add_ext_results
-( std::vector<std::map<TString,std::tuple<Float_t,Float_t,Float_t>>> &fTarget  )  {
-    std::map<TString,std::tuple<Float_t,Float_t,Float_t>>   kToAdd;
-    get<0>(kToAdd["YL_FLL"])    =   0.;
-    get<1>(kToAdd["YL_FLL"])    =   0.;
-    get<2>(kToAdd["YL_FLL"])    =   0.;
-    get<0>(kToAdd["YL_INT"])    =   0.;
-    get<1>(kToAdd["YL_INT"])    =   0.;
-    get<2>(kToAdd["YL_INT"])    =   0.;
-    get<0>(kToAdd["YL_EXT"])    =   0.;
-    get<1>(kToAdd["YL_EXT"])    =   0.;
-    get<2>(kToAdd["YL_EXT"])    =   0.;
-    for ( auto kResult : fTarget )    {
-        auto kBinValue              =   get<0>(kResult["YL_FLL"]);
-        auto kBin_stat              =   get<1>(kResult["YL_FLL"]);
-        auto kBin_syst              =   get<2>(kResult["YL_FLL"]);
-        get<0>(kToAdd["YL_FLL"])   +=   kBinValue;
-        get<1>(kToAdd["YL_FLL"])   +=   kBin_stat*kBin_stat;
-        get<2>(kToAdd["YL_FLL"])   +=   kBin_stat*kBin_stat;
-        kBinValue                   =   get<0>(kResult["YL_INT"]);
-        kBin_stat                   =   get<1>(kResult["YL_INT"]);
-        kBin_syst                   =   get<2>(kResult["YL_INT"]);
-        get<0>(kToAdd["YL_INT"])   +=   kBinValue;
-        get<1>(kToAdd["YL_INT"])   +=   kBin_stat*kBin_stat;
-        get<2>(kToAdd["YL_INT"])   +=   kBin_stat*kBin_stat;
-        kBinValue                   =   get<0>(kResult["YL_EXT"]);
-        kBin_stat                   =   get<1>(kResult["YL_EXT"]);
-        kBin_syst                   =   get<2>(kResult["YL_EXT"]);
-        get<0>(kToAdd["YL_EXT"])   +=   kBinValue;
-        get<1>(kToAdd["YL_EXT"])   +=   kBin_stat*kBin_stat;
-        get<2>(kToAdd["YL_EXT"])   +=   kBin_stat*kBin_stat;
-    }
-    get<1>(kToAdd["YL_FLL"])    =   TMath::Sqrt( get<1>(kToAdd["YL_FLL"]) );
-    get<2>(kToAdd["YL_FLL"])    =   TMath::Sqrt( get<2>(kToAdd["YL_FLL"]) );
-    get<1>(kToAdd["YL_INT"])    =   TMath::Sqrt( get<1>(kToAdd["YL_INT"]) );
-    get<2>(kToAdd["YL_INT"])    =   TMath::Sqrt( get<2>(kToAdd["YL_INT"]) );
-    get<1>(kToAdd["YL_EXT"])    =   TMath::Sqrt( get<1>(kToAdd["YL_EXT"]) );
-    get<2>(kToAdd["YL_EXT"])    =   TMath::Sqrt( get<2>(kToAdd["YL_EXT"]) );
-    push_to_front( fTarget, kToAdd );
 }
 //
 // TODO: Implement checks
@@ -156,16 +122,15 @@ uMeasureFullYield2D
     //
     std::vector<TH1D*>  kStat_Array;
     std::vector<TH1D*>  kSyst_Array;
-    for ( Int_t iBin = 1; iBin <= hTarget_stat->GetNbinsX(); iBin++ )   kStat_Array.push_back( (TH1D*)(hTarget_stat->ProjectionX(Form("%s_%i",hTarget_stat->GetName(),iBin),iBin,iBin))->Clone() );
-    for ( Int_t iBin = 1; iBin <= hTarget_syst->GetNbinsX(); iBin++ )   kSyst_Array.push_back( (TH1D*)(hTarget_syst->ProjectionX(Form("%s_%i",hTarget_syst->GetName(),iBin),iBin,iBin))->Clone() );
-    for ( Int_t iBin = 1; iBin <= hTarget_stat->GetNbinsX(); iBin++ )   kStat_Array.at( iBin-1 )->Scale( 1./(kStat_Array.at(0)->GetBinWidth(iBin)) );
-    for ( Int_t iBin = 1; iBin <= hTarget_syst->GetNbinsX(); iBin++ )   kSyst_Array.at( iBin-1 )->Scale( 1./(kSyst_Array.at(0)->GetBinWidth(iBin)) );
+    for ( Int_t iBin = 1; iBin <= hTarget_stat->GetNbinsX(); iBin++ )   kStat_Array.push_back( (TH1D*)(hTarget_stat->ProjectionX(Form("%s_stat_%i",hTarget_stat->GetName(),iBin),iBin,iBin))->Clone() );
+    for ( Int_t iBin = 1; iBin <= hTarget_syst->GetNbinsX(); iBin++ )   kSyst_Array.push_back( (TH1D*)(hTarget_syst->ProjectionX(Form("%s_syst_%i",hTarget_syst->GetName(),iBin),iBin,iBin))->Clone() );
     //
     fStartTimer("2D Full Yield Evaluation");
     //
     for ( Int_t iTer = 0; iTer <  kStat_Array.size(); iTer++ )  {
-        auto    kCurrent_Scale  =   0.5*(kStat_Array.at(0)->GetBinWidth(iTer+1))*(kStat_Array.at(0)->GetBinWidth(iTer+1));
-        fResult.push_back( uMeasureFullYield(kStat_Array.at(iTer),kSyst_Array.at(iTer),fExtrapolationFunc_Array,kIterations,kSaveFolder,Form(kSaveName,iTer),kCurrent_Scale) );
+        uSetHisto( kStat_Array.at(iTer), "SPT 12D" );
+        uSetHisto( kSyst_Array.at(iTer), "SPT 12D" );
+        fResult.push_back( uMeasureFullYield(kStat_Array.at(iTer),kSyst_Array.at(iTer),fExtrapolationFunc_Array,kIterations,kSaveFolder,Form(kSaveName,iTer)) );
         fPrintLoopTimer("2D Full Yield Evaluation",iTer+1,hTarget_stat->GetNbinsX()+2,1);
     }
     //
@@ -182,12 +147,51 @@ uMeasureFullYield2D
         h2D_LowPT_Extrap_syst   ->  SetBinContent   ( iBin, kBinValue );
         h2D_LowPT_Extrap_syst   ->  SetBinError     ( iBin, kBin_syst );
     }
+    h2D_LowPT_Extrap_stat->Scale(1.,"width");
+    h2D_LowPT_Extrap_syst->Scale(1.,"width");
+    uSetHisto( h2D_LowPT_Extrap_stat, "SPT 12D" );
+    uSetHisto( h2D_LowPT_Extrap_syst, "SPT 12D" );
     //
     push_to_front( fResult, uMeasureFullYield(h2D_LowPT_Extrap_stat,h2D_LowPT_Extrap_syst,fExtrapolationFunc_Array,kIterations,kSaveFolder,Form(kSaveName,-1)) );
     //
+    //  Full Yield Calculation
+    auto kFullIntegral = 0.;
+    auto kStatIntegral = 0.;
+    auto kSystIntegral = 0.;
+    iBin = -1;
+    for ( auto kCurrent_Spectrum : fResult )    {
+        iBin++;
+        auto kScaleWidth    =   (kStat_Array.at(0)->GetBinWidth( iBin ));
+        if ( iBin == 0 )        kScaleWidth = kStat_Array.at(0)->GetBinLowEdge(1);
+        kFullIntegral      +=   kScaleWidth*get<0>(kCurrent_Spectrum["YL_INT"]);
+        kStatIntegral      +=   kScaleWidth*get<1>(kCurrent_Spectrum["YL_INT"]);
+        kSystIntegral      +=   kScaleWidth*get<2>(kCurrent_Spectrum["YL_INT"]);
+    }
+    //
     fStopTimer("2D Full Yield Evaluation");
     //
-    add_ext_results(fResult);
+    auto    kFinalMeasurement = fResult.at(0);
+    get<0>(kFinalMeasurement["YL_FLL"]) = ( kFullIntegral ) /2. + get<0>(fResult.at(0)["YL_EXT"]);
+    get<0>(kFinalMeasurement["YL_INT"]) = kFullIntegral /2.;
+    get<0>(kFinalMeasurement["YL_EXT"]) = get<0>(fResult.at(0)["YL_EXT"]);
+    get<1>(kFinalMeasurement["YL_FLL"]) = SquareSum( { kStatIntegral, get<1>(fResult.at(0)["YL_EXT"]) } );
+    get<1>(kFinalMeasurement["YL_INT"]) = kStatIntegral;
+    get<1>(kFinalMeasurement["YL_EXT"]) = get<1>(fResult.at(0)["YL_EXT"]);
+    get<2>(kFinalMeasurement["YL_FLL"]) = SquareSum( { kSystIntegral, get<2>(fResult.at(0)["YL_EXT"]) } );
+    get<2>(kFinalMeasurement["YL_INT"]) = kSystIntegral;
+    get<2>(kFinalMeasurement["YL_EXT"]) = get<2>(fResult.at(0)["YL_EXT"]);
+    //
+    //  --- Dummy Values
+    get<0>(kFinalMeasurement["PT_FLL"]) = 1;
+    get<0>(kFinalMeasurement["PT_INT"]) = 1;
+    get<0>(kFinalMeasurement["PT_EXT"]) = 1;
+    get<1>(kFinalMeasurement["PT_FLL"]) = 1;
+    get<1>(kFinalMeasurement["PT_INT"]) = 1;
+    get<1>(kFinalMeasurement["PT_EXT"]) = 1;
+    get<2>(kFinalMeasurement["PT_FLL"]) = 1;
+    get<2>(kFinalMeasurement["PT_INT"]) = 1;
+    get<2>(kFinalMeasurement["PT_EXT"]) = 1;
+    push_to_front( fResult, kFinalMeasurement );
     //
     return fResult;
 }
@@ -253,15 +257,15 @@ uExtrapolateToLowPT
         //
         cSaveMeasureFit             ->  cd(4);
         gPad                        ->  SetLogx();
-        auto    hRatioReference_Draw=   ( THXTarget_Type* )( hFullUncertainties_Draw->Clone() );
+        auto    hRatioReference_Draw=   ( THXTarget_Type* )( hFullUncertainties_Draw->Clone("hRatioReference_Draw") );
+        hFullUncertainties_Draw     ->  GetXaxis()  ->  SetRangeUser( kLowLimit, kHigLimit );
         hRatioReference_Draw        ->  Divide( hFullUncertainties_Draw, hFullUncertainties_Draw );
+        hRatioReference_Draw        ->  GetXaxis()  ->  SetRangeUser( kLowLimit, kHigLimit );
         hRatioReference_Draw        ->  GetYaxis()  ->  SetTitle( "FIT/DATA" );
         hRatioReference_Draw        ->  SetMaximum( 1.5 );
         hRatioReference_Draw        ->  SetMinimum( 0.5 );
         hRatioReference_Draw        ->  SetFillColorAlpha( 0., 0. );
         hRatioReference_Draw        ->  DrawCopy("HIST L");
-        //
-        hFullUncertainties_Draw     ->  GetXaxis()  ->  SetRangeUser( 0., kHigLimit*1.2  );
     }
     //
     //  --- Evaluation Loop
@@ -274,7 +278,7 @@ uExtrapolateToLowPT
         delete      kDump;
         //
         kFullYieldVariations    .push_back  ( kStandardIntegral + get<0>(fExtrapolationFunc)->Integral( 0, get<1>(fExtrapolationFunc) ) );
-        kFullMeanPTVariations   .push_back  ( uEvaluateMeanPT( hFullUncertainties, get<0>(fExtrapolationFunc) ) );
+        kFullMeanPTVariations   .push_back  ( uEvaluateMeanPT( kRandomised, get<0>(fExtrapolationFunc) ) );
         //
         if ( !kSaveFolder.IsNull() ) {
             cSaveMeasureFit->cd(1);
@@ -411,7 +415,7 @@ uExtrapolateToLowPT
         //
         cSaveMeasureFit             ->  cd(2);
         gPad                        ->  SetLogy();
-        hFullUncertainties_Draw     ->  GetXaxis()  ->  SetRangeUser( 0., 0.25*( kLowLimit + kHigLimit ) );
+        hFullUncertainties_Draw     ->  GetXaxis()  ->  SetRangeUser( kLowLimit, 0.25*( kLowLimit + kHigLimit ) );
         hFullUncertainties_Draw     ->  SetMaximum( 10.*kMaximum );
         hFullUncertainties_Draw     ->  SetMinimum( 0.2*kBinFocusContent );
         hFullUncertainties_Draw     ->  DrawCopy();
@@ -419,14 +423,14 @@ uExtrapolateToLowPT
         cSaveMeasureFit             ->  cd(4);
         gPad                        ->  SetLogx();
         auto    hRatioReference_Draw=   ( THXTarget_Type* )( hFullUncertainties_Draw->Clone() );
+        hFullUncertainties_Draw     ->  GetXaxis()  ->  SetRangeUser( kLowLimit, kHigLimit );
         hRatioReference_Draw        ->  Divide( hFullUncertainties_Draw, hFullUncertainties_Draw );
+        hRatioReference_Draw        ->  GetXaxis()  ->  SetRangeUser( kLowLimit, kHigLimit );
         hRatioReference_Draw        ->  GetYaxis()  ->  SetTitle( "FIT/DATA" );
         hRatioReference_Draw        ->  SetMaximum( 1.5 );
         hRatioReference_Draw        ->  SetMinimum( 0.5 );
         hRatioReference_Draw        ->  SetFillColorAlpha( 0., 0. );
         hRatioReference_Draw        ->  DrawCopy("HIST L");
-        //
-        hFullUncertainties_Draw     ->  GetXaxis()  ->  SetRangeUser( 0., kHigLimit*1.2  );
     }
     //
     //  --- Evaluation Loop
@@ -603,6 +607,23 @@ uEvaluateMeanPTError
         fLowDenom       +=  kBinContent_Low.at(iBin)    * kBinWitdh.at(iBin);
     }
     return 0.5*fabs( ( fLowLimit / fLowDenom ) - ( fHighLimit / fHighDenom ) );
+}
+//
+template <  typename THXTarget_Type,
+            Bool_t kGetSyst = false >
+THXTarget_Type*
+uBuildMeanPT
+( std::vector<std::map<TString,std::tuple<Float_t,Float_t,Float_t>>> hTarget  )  {
+    std::vector<Float_t>    kMPT_Value;
+    std::vector<Float_t>    kMPT_Error;
+    THXTarget_Type*         hResult =   new THXTarget_Type( "tmp", "tmp", hTarget.size(), 0, hTarget.size() );
+    for ( auto kCurrent_Measure : hTarget ) {
+        kMPT_Value  .push_back( get<0>(kCurrent_Measure["PT_FLL"]) );
+        if ( kGetSyst ) kMPT_Error  .push_back( get<2>(kCurrent_Measure["PT_FLL"]) );
+        else            kMPT_Error  .push_back( get<1>(kCurrent_Measure["PT_FLL"]) );
+    }
+    for ( Int_t iBin = 1; iBin <= hResult->GetNbinsX() ; iBin++ ) { hResult->SetBinContent( iBin, kMPT_Value.at(iBin-1) ); hResult->SetBinError( iBin, kMPT_Error.at(iBin-1) ); }
+    return  hResult;
 }
 //
 #endif /* AAU_Extrapolation_h */

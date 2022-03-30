@@ -23,10 +23,10 @@ auto                hName                           =   "Name";
 auto                hTitle                          =   "Title";
 //
 //  --- --- General Parameters
-const Bool_t        kFitScarseHisto                 =   kTRUE;      //  Skip the fit of histograms that are below the threshold set below
+const Bool_t        kFitScarseHisto                 =   kTRUE;     //  Skip the fit of histograms that are below the threshold set below
 const Float_t       kScarseHistoDef                 =   0.;         //  % of entries w.r.t. total bin number
 const Int_t         kScarseHistoMin                 =   1000.;      //  N of entries
-const Float_t       kLooseErrors                    =   3.;         //  Multiplication factor for the Error looosening
+const Float_t       kLooseErrors                    =   3.;         //  Multiplication factor for the Error Loosening
 const Double_t      kMaximumError                   =   2.5;        //  Maximum percentage error to accept fit result, will retry if higher
 //
 //  --- --- Physics is by defualt in GeV, we define some constants to evaluate results in other units
